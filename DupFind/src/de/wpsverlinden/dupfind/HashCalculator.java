@@ -15,7 +15,6 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package de.wpsverlinden.dupfind;
 
 import java.util.HashMap;
@@ -23,37 +22,37 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HashCalculator {
 
-	HashMap<String, FileEntry> index;
+    HashMap<String, FileEntry> index;
 
-	public HashCalculator(HashMap<String, FileEntry> index) {
-		this.index = index;
-	}
+    public HashCalculator(HashMap<String, FileEntry> index) {
+        this.index = index;
+    }
 
-	public void calculateHashes(int numThreads) {
-		if (index == null) {
-			System.out.println("No index loaded");
-			return;
-		}
-		ConcurrentLinkedQueue<FileEntry> workQueue = new ConcurrentLinkedQueue<>();
-		for (FileEntry entry : index.values()) {
-			if (entry.getHash().isEmpty()) {
-				workQueue.add(entry);
-			}
-		}
-		HashCalcThread[] threads = new HashCalcThread[numThreads];
-		System.out.print("Calculating hashes ...");
-		for (int i = 0; i < numThreads; i++) {
-			threads[i] = new HashCalcThread(workQueue);
-			threads[i].start();
-		}
+    public void calculateHashes(int numThreads) {
+        if (index == null) {
+            System.out.println("No index loaded");
+            return;
+        }
+        ConcurrentLinkedQueue<FileEntry> workQueue = new ConcurrentLinkedQueue<>();
+        for (FileEntry entry : index.values()) {
+            if (entry.getHash().isEmpty()) {
+                workQueue.add(entry);
+            }
+        }
+        HashCalcThread[] threads = new HashCalcThread[numThreads];
+        System.out.print("Calculating hashes ...");
+        for (int i = 0; i < numThreads; i++) {
+            threads[i] = new HashCalcThread(workQueue);
+            threads[i].start();
+        }
 
-		try {
-			for (int i = 0; i < numThreads; i++) {
-				threads[i].join();
-			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println(" done.");
-	}
+        try {
+            for (int i = 0; i < numThreads; i++) {
+                threads[i].join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println(" done.");
+    }
 }

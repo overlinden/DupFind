@@ -15,7 +15,6 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package de.wpsverlinden.dupfind;
 
 import java.io.File;
@@ -29,156 +28,155 @@ import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-
 public class FileIndexer {
 
-	private final static int MB_PER_DOT = 250;
-	
-	private HashMap<String, FileEntry> index = new HashMap<>();
-	private File dir = new File(".");
-	private String canonicalDir;
+    private final static int MB_PER_DOT = 250;
+    private HashMap<String, FileEntry> index = new HashMap<>();
+    private File dir = new File(".");
+    private String canonicalDir;
 
-	public FileIndexer() {
-		try {
-			canonicalDir = dir.getCanonicalPath();
-		} catch (IOException e) {
-			canonicalDir = dir.getAbsolutePath();
-		}
-	}
-	
-	public void buildIndex() {
-		System.out.print("Indexing files ...");
-		removeDeletedFiles();
-		recAddFilesInDir(dir);
-		index.remove(canonicalDir + File.separator + "DupFind.index.gz");
-		System.out.println(" done. " + index.size() + " file(s) in index");
-	}
+    public FileIndexer() {
+        try {
+            canonicalDir = dir.getCanonicalPath();
+        } catch (IOException e) {
+            canonicalDir = dir.getAbsolutePath();
+        }
+    }
 
-	public void pruneDeletedFiles() {
-		int oldSize = index.size();
-		System.out.print("Removing deleted files ... ");
-		removeDeletedFiles();
-		System.out.println("done. Removed " + (oldSize - index.size()) + " file(s) from index");
-	}
+    public void buildIndex() {
+        System.out.print("Indexing files ...");
+        removeDeletedFiles();
+        recAddFilesInDir(dir);
+        index.remove(canonicalDir + File.separator + "DupFind.index.gz");
+        System.out.println(" done. " + index.size() + " file(s) in index");
+    }
 
-	private void removeDeletedFiles() {
-		File file;
-		ArrayList<String> removeList = new ArrayList<>();
-		for (String path : index.keySet()) {
-			file = new File(path);
-			if (!file.exists() || !file.isFile()) {
-				removeList.add(path);
-			}
-		}
-		
-		for (String path : removeList) {
-			index.remove(path);
-		}
-	}
+    public void pruneDeletedFiles() {
+        int oldSize = index.size();
+        System.out.print("Removing deleted files ... ");
+        removeDeletedFiles();
+        System.out.println("done. Removed " + (oldSize - index.size()) + " file(s) from index");
+    }
 
-	private void recAddFilesInDir(File dir) {
-		int fileSizeMB;
-		int cntMB = 0;
-		File[] files = dir.listFiles();
-		if (files != null) {
-			for (File entry : files) {
-				try {
-					FileEntry fi = index.get(entry.getCanonicalPath());
-					if (entry.isDirectory()) {
-						recAddFilesInDir(entry);
-					} else if (fi == null || fi.getLastModified() < entry.lastModified()) {
-						index.put(entry.getCanonicalPath(), new FileEntry(entry.getCanonicalPath(), entry.length(), entry.lastModified(), ""));
-						fileSizeMB = (int)entry.length() / (1024 * 1024);
-						cntMB += (fileSizeMB >= 1 ? fileSizeMB : 1);
-					}
-					if (cntMB >= MB_PER_DOT) {
-						cntMB = 0;
-						System.out.print(".");
-					}
-				} catch (IOException e) { }
-			}
-		}
-	}
+    private void removeDeletedFiles() {
+        File file;
+        ArrayList<String> removeList = new ArrayList<>();
+        for (String path : index.keySet()) {
+            file = new File(path);
+            if (!file.exists() || !file.isFile()) {
+                removeList.add(path);
+            }
+        }
 
-	public HashMap<String, FileEntry> getIndex() {
-		return index;
-	}
+        for (String path : removeList) {
+            index.remove(path);
+        }
+    }
 
-	public void cd(String dir) {
-		if (".".equals(dir)) {
-			return;
-		}
-		if ("..".equals(dir) && this.dir.getParent() != null) {
-			this.dir = new File(this.dir.getParent());
-			try {
-				this.canonicalDir = this.dir.getCanonicalPath();
-			} catch (IOException e) {
-				this.canonicalDir = this.dir.getAbsolutePath();
-			}
-			return;
-		}
+    private void recAddFilesInDir(File dir) {
+        int fileSizeMB;
+        int cntMB = 0;
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File entry : files) {
+                try {
+                    FileEntry fi = index.get(entry.getCanonicalPath());
+                    if (entry.isDirectory()) {
+                        recAddFilesInDir(entry);
+                    } else if (fi == null || fi.getLastModified() < entry.lastModified()) {
+                        index.put(entry.getCanonicalPath(), new FileEntry(entry.getCanonicalPath(), entry.length(), entry.lastModified(), ""));
+                        fileSizeMB = (int) entry.length() / (1024 * 1024);
+                        cntMB += (fileSizeMB >= 1 ? fileSizeMB : 1);
+                    }
+                    if (cntMB >= MB_PER_DOT) {
+                        cntMB = 0;
+                        System.out.print(".");
+                    }
+                } catch (IOException e) {
+                }
+            }
+        }
+    }
 
-		File directory = new File(this.dir + File.separator + dir);
+    public HashMap<String, FileEntry> getIndex() {
+        return index;
+    }
 
-		if (directory.exists() && directory.isDirectory()) {
-			this.dir = directory;
-			try {
-				this.canonicalDir = this.dir.getCanonicalPath();
-			} catch (IOException e) {
-				this.canonicalDir = this.dir.getAbsolutePath();
-			}
-			return;
-		}
+    public void cd(String dir) {
+        if (".".equals(dir)) {
+            return;
+        }
+        if ("..".equals(dir) && this.dir.getParent() != null) {
+            this.dir = new File(this.dir.getParent());
+            try {
+                this.canonicalDir = this.dir.getCanonicalPath();
+            } catch (IOException e) {
+                this.canonicalDir = this.dir.getAbsolutePath();
+            }
+            return;
+        }
 
-		directory = new File(dir);
-		if (directory.exists() && directory.isDirectory()) {
-			this.dir = directory;
-			try {
-				this.canonicalDir = this.dir.getCanonicalPath();
-			} catch (IOException e) {
-				this.canonicalDir = this.dir.getAbsolutePath();
-			}
-			return;
-		}
+        File directory = new File(this.dir + File.separator + dir);
 
-		System.out.println("Invalid directory: " + dir);
-	}
+        if (directory.exists() && directory.isDirectory()) {
+            this.dir = directory;
+            try {
+                this.canonicalDir = this.dir.getCanonicalPath();
+            } catch (IOException e) {
+                this.canonicalDir = this.dir.getAbsolutePath();
+            }
+            return;
+        }
 
-	public String pwd() {
-			return canonicalDir + "> ";
-	}
+        directory = new File(dir);
+        if (directory.exists() && directory.isDirectory()) {
+            this.dir = directory;
+            try {
+                this.canonicalDir = this.dir.getCanonicalPath();
+            } catch (IOException e) {
+                this.canonicalDir = this.dir.getAbsolutePath();
+            }
+            return;
+        }
 
-	public void saveIndex() {
-		String outFile = canonicalDir + File.separator + "DupFind.index.gz";
-		System.out.print("Saving index ... ");
-                try (ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(outFile)))) {
-                        oos.writeObject(index);
-                        oos.flush();
-			System.out.println("done.  " + index.size() + " files in index.");
-		} catch (IOException e) {
-			System.err.println(e);
-		}
-	}
+        System.out.println("Invalid directory: " + dir);
+    }
 
-	@SuppressWarnings("unchecked")
-	public boolean loadIndex() {
-		boolean ret = false;
-		File file = new File(canonicalDir + File.separator + "DupFind.index.gz");
-		System.out.print("Loading index ... ");
-		if (file.exists() && file.isFile()) {
-                        try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
-                                index = (HashMap<String, FileEntry>) ois.readObject();
-                                System.out.println("done. " + index.size() + " files in index.");
-				ret = true;
-			} catch (Exception e) {
-				System.err.println(e);
-			}
-		} else {
-			index = new HashMap<>();
-			System.out.println("failed. No index found.");
-			ret = false;
-		}
+    public String pwd() {
+        return canonicalDir + "> ";
+    }
 
-		return ret;
-	}
+    public void saveIndex() {
+        String outFile = canonicalDir + File.separator + "DupFind.index.gz";
+        System.out.print("Saving index ... ");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(outFile)))) {
+            oos.writeObject(index);
+            oos.flush();
+            System.out.println("done.  " + index.size() + " files in index.");
+        } catch (IOException e) {
+            System.err.println(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public boolean loadIndex() {
+        boolean ret = false;
+        File file = new File(canonicalDir + File.separator + "DupFind.index.gz");
+        System.out.print("Loading index ... ");
+        if (file.exists() && file.isFile()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
+                index = (HashMap<String, FileEntry>) ois.readObject();
+                System.out.println("done. " + index.size() + " files in index.");
+                ret = true;
+            } catch (Exception e) {
+                System.err.println(e);
+            }
+        } else {
+            index = new HashMap<>();
+            System.out.println("failed. No index found.");
+            ret = false;
+        }
+
+        return ret;
+    }
 }

@@ -15,60 +15,60 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package de.wpsverlinden.dupfind;
 
 import java.io.Serializable;
 
 public class FileEntry implements Serializable {
-	private static final long serialVersionUID = 1L;
-	private String path, hash;
-	private long size, lastModified;
 
-	public FileEntry() {
-	}
+    private static final long serialVersionUID = 1L;
+    private String path, hash;
+    private long size, lastModified;
 
-	public FileEntry(String path, long size, long lastModified, String hash) {
-		this.path = path;
-		this.size = size;
-		this.lastModified = lastModified;
-		this.hash = hash;
-	}
+    public FileEntry() {
+    }
 
-	public long getLastModified() {
-		return lastModified;
-	}
+    public FileEntry(String path, long size, long lastModified, String hash) {
+        this.path = path;
+        this.size = size;
+        this.lastModified = lastModified;
+        this.hash = hash;
+    }
 
-	public void setLastModified(long lastModified) {
-		this.lastModified = lastModified;
-	}
+    public long getLastModified() {
+        return lastModified;
+    }
 
-	public String getPath() {
-		return path;
-	}
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+    }
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public String getHash() {
-		return hash;
-	}
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-	public void setHash(String hash) {
-		this.hash = hash;
-	}
+    public String getHash() {
+        return hash;
+    }
 
-	public long getSize() {
-		return size;
-	}
+    public void setHash(String hash) {
+        this.hash = hash;
+    }
 
-	public void setSize(long size) {
-		this.size = size;
-	}
+    public long getSize() {
+        return size;
+    }
 
-	@Override
-	public String toString() {
-		return "File[" + getPath() + "; size=" + getSize() + " byte; hash=" + getHash() + "]";
-	}
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    @Override
+    public String toString() {
+        return "File[" + getPath() + "; size=" + getSize() + " byte; hash=" + getHash() + "]";
+    }
 }

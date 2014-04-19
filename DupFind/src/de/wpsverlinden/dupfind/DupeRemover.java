@@ -15,7 +15,6 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package de.wpsverlinden.dupfind;
 
 import java.io.File;
@@ -25,51 +24,51 @@ import java.util.List;
 
 public class DupeRemover {
 
-	private HashMap<String, FileEntry> index;
-	private DupeFinder df;
+    private HashMap<String, FileEntry> index;
+    private DupeFinder df;
 
-	public DupeRemover(DupeFinder df, HashMap<String, FileEntry> index) {
-		this.index = index;
-		this.df = df;
-	}
+    public DupeRemover(DupeFinder df, HashMap<String, FileEntry> index) {
+        this.index = index;
+        this.df = df;
+    }
 
-	public void deleteDupesOf(String dir, String path) {
-		if (index == null) {
-			System.out.println("No index loaded");
-			return;
-		}
-		FileEntry info = (FileEntry) index.get(dir + File.separator + path);
-		FileEntry info2 = (FileEntry) index.get(path);
-		if (info == null && info2 == null) {
-			System.out.println("Index doesn't contain " + path);
-			return;
-		}
-		info = (info != null ? info : info2);
-		ArrayList<FileEntry> dupes = df.getDupesOf(info.getPath());
+    public void deleteDupesOf(String dir, String path) {
+        if (index == null) {
+            System.out.println("No index loaded");
+            return;
+        }
+        FileEntry info = (FileEntry) index.get(dir + File.separator + path);
+        FileEntry info2 = (FileEntry) index.get(path);
+        if (info == null && info2 == null) {
+            System.out.println("Index doesn't contain " + path);
+            return;
+        }
+        info = (info != null ? info : info2);
+        ArrayList<FileEntry> dupes = df.getDupesOf(info.getPath());
 
-		if (dupes.size() > 0) {
-			System.out.println("Deleting dupes of " + info);
-			for (FileEntry dp : dupes) {
-				String delPath = dp.getPath();
-				File del = new File(delPath);
-				index.remove(delPath);
-				del.delete();
-			}
-		}
-	}
+        if (dupes.size() > 0) {
+            System.out.println("Deleting dupes of " + info);
+            for (FileEntry dp : dupes) {
+                String delPath = dp.getPath();
+                File del = new File(delPath);
+                index.remove(delPath);
+                del.delete();
+            }
+        }
+    }
 
-	public void deleteDupes() {
-		System.out.print("Delete dupes ...");
-		HashMap<String, List<FileEntry>> dupeMap = df.getDupeMap();
-		for (List<FileEntry> lst : dupeMap.values()) {
-			while (lst.size() > 1) {
-				String delPath = lst.get(lst.size() -1).getPath();
-				File del = new File(delPath);
-				del.delete();
-				index.remove(delPath);
-				lst.remove(lst.size() - 1);
-			}
-		}
-		System.out.println(" done.");
-	}
+    public void deleteDupes() {
+        System.out.print("Delete dupes ...");
+        HashMap<String, List<FileEntry>> dupeMap = df.getDupeMap();
+        for (List<FileEntry> lst : dupeMap.values()) {
+            while (lst.size() > 1) {
+                String delPath = lst.get(lst.size() - 1).getPath();
+                File del = new File(delPath);
+                del.delete();
+                index.remove(delPath);
+                lst.remove(lst.size() - 1);
+            }
+        }
+        System.out.println(" done.");
+    }
 }
