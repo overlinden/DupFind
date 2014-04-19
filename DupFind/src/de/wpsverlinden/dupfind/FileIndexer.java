@@ -30,7 +30,7 @@ import java.util.zip.GZIPOutputStream;
 
 public class FileIndexer {
 
-    private final static int MB_PER_DOT = 250;
+    private final static int MB_PER_DOT = 100;
     private HashMap<String, FileEntry> index = new HashMap<>();
     private File dir = new File(".");
     private String canonicalDir;

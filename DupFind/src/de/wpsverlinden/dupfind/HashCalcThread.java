@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HashCalcThread extends Thread {
 
-    private final static int MB_PER_DOT = 250;
+    private final static int MB_PER_DOT = 100;
     ConcurrentLinkedQueue<FileEntry> workQueue;
 
     public HashCalcThread(ConcurrentLinkedQueue<FileEntry> workQueue) {
@@ -62,7 +62,7 @@ public class HashCalcThread extends Thread {
     }
 
     private byte[] calcChecksum(String path) throws Exception {
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[8192];
         MessageDigest digest = MessageDigest.getInstance("MD5");
         int numRead;
         byte[] hash = null;
