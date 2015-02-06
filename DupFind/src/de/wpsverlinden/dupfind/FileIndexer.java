@@ -23,6 +23,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
@@ -30,7 +32,6 @@ import java.util.zip.GZIPOutputStream;
 
 public class FileIndexer {
 
-    private final static int MB_PER_DOT = 100;
     private HashMap<String, FileEntry> index = new HashMap<>();
     private File dir = new File(".");
     private String canonicalDir;
@@ -68,33 +69,36 @@ public class FileIndexer {
             }
         }
 
-        for (String path : removeList) {
-            index.remove(path);
-        }
+        removeList.stream()
+                .forEach((e) -> {
+                    index.remove(e);
+                });
     }
 
     private void recAddFilesInDir(File dir) {
-        int fileSizeMB;
-        int cntMB = 0;
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File entry : files) {
-                try {
-                    FileEntry fi = index.get(entry.getCanonicalPath());
-                    if (entry.isDirectory()) {
-                        recAddFilesInDir(entry);
-                    } else if (fi == null || fi.getLastModified() < entry.lastModified()) {
-                        index.put(entry.getCanonicalPath(), new FileEntry(entry.getCanonicalPath(), entry.length(), entry.lastModified(), ""));
-                        fileSizeMB = (int) entry.length() / (1024 * 1024);
-                        cntMB += (fileSizeMB >= 1 ? fileSizeMB : 1);
-                    }
-                    if (cntMB >= MB_PER_DOT) {
-                        cntMB = 0;
-                        System.out.print(".");
-                    }
-                } catch (IOException e) {
-                }
-            }
+        try {
+            Files.walk(Paths.get(dir.getCanonicalPath()))
+                    .sequential()
+                    .filter(Files::isRegularFile)
+                    .map((e) -> e.toFile())
+                    .filter((e) -> {
+                        FileEntry fi = null;
+                        try {
+                            fi = index.get(e.getCanonicalPath());
+                        } catch (IOException ex) {
+                        }
+                        return fi == null || fi.getLastModified() < e.lastModified();
+                    })
+                    .forEach((e) -> {
+                        try {
+                            index.put(e.getCanonicalPath(), new FileEntry(e.getCanonicalPath(), e.length(), e.lastModified(), ""));
+                            System.out.print(".");
+                        } catch (IOException ex) {
+                            System.err.println(ex);
+                        }
+                    });
+        } catch (IOException ex) {
+            System.err.println(ex);
         }
     }
 
@@ -138,7 +142,6 @@ public class FileIndexer {
             }
             return;
         }
-
         System.out.println("Invalid directory: " + dir);
     }
 
@@ -176,7 +179,6 @@ public class FileIndexer {
             System.out.println("failed. No index found.");
             ret = false;
         }
-
         return ret;
     }
 }

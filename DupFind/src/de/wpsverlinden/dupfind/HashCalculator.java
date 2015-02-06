@@ -17,12 +17,15 @@
  */
 package de.wpsverlinden.dupfind;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HashCalculator {
 
-    HashMap<String, FileEntry> index;
+    private final HashMap<String, FileEntry> index;
 
     public HashCalculator(HashMap<String, FileEntry> index) {
         this.index = index;
@@ -33,26 +36,55 @@ public class HashCalculator {
             System.out.println("No index loaded");
             return;
         }
-        ConcurrentLinkedQueue<FileEntry> workQueue = new ConcurrentLinkedQueue<>();
-        for (FileEntry entry : index.values()) {
-            if (entry.getHash().isEmpty()) {
-                workQueue.add(entry);
-            }
-        }
-        HashCalcThread[] threads = new HashCalcThread[numThreads];
-        System.out.print("Calculating hashes ...");
-        for (int i = 0; i < numThreads; i++) {
-            threads[i] = new HashCalcThread(workQueue);
-            threads[i].start();
-        }
-
-        try {
-            for (int i = 0; i < numThreads; i++) {
-                threads[i].join();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        index.values().parallelStream()
+                .filter((e) -> (e.getHash().isEmpty()))
+                .forEach((e) -> {
+                    calc(e);
+                });
         System.out.println(" done.");
+    }
+
+    public void calc(FileEntry current) {
+        File file = new File(current.getPath());
+        if (current.getHash().isEmpty() || current.getLastModified() < file.lastModified()) {
+            try {
+                current.setHash(calcHash(current.getPath()));
+                System.out.print(".");
+            } catch (Exception e) {
+                System.out.println("Error calculating hash for " + current.getPath());
+            }
+        }
+    }
+
+    private byte[] calcChecksum(String path) throws Exception {
+        byte[] buffer = new byte[8192];
+        MessageDigest digest = MessageDigest.getInstance("MD5");
+        int numRead;
+        byte[] hash = null;
+        InputStream fis;
+        File file = new File(path);
+        if (file.exists() && file.isFile()) {
+            fis = new FileInputStream(file);
+            do {
+                numRead = fis.read(buffer);
+                if (numRead > 0) {
+                    digest.update(buffer, 0, numRead);
+                }
+            } while (numRead != -1);
+
+            fis.close();
+            hash = digest.digest();
+        }
+        return hash;
+    }
+
+    public String calcHash(String path) throws Exception {
+        byte[] b = calcChecksum(path);
+        String result = "";
+
+        for (int i = 0; i < b.length; i++) {
+            result += Integer.toString((b[i] & 0xff) + 0x100, 16).substring(1);
+        }
+        return result;
     }
 }

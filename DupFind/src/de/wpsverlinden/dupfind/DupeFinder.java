@@ -19,13 +19,14 @@ package de.wpsverlinden.dupfind;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
 public class DupeFinder {
 
-    private HashMap<String, FileEntry> index;
+    private final HashMap<String, FileEntry> index;
 
     public DupeFinder(HashMap<String, FileEntry> index) {
         this.index = index;
@@ -38,15 +39,16 @@ public class DupeFinder {
         }
         ArrayList<FileEntry> dupes = new ArrayList<>();
         FileEntry info = (FileEntry) index.get(path);
-
-        for (FileEntry other : index.values()) {
-            if (other.getPath().equals(info.getPath())) {
-                continue;
-            }
-            if (other.getSize() == info.getSize() && other.getHash().equals(info.getHash())) {
-                dupes.add(other);
-            }
+        if (info == null) {
+            System.out.println("Could not find \"" + path + "\" in index");
+            return dupes;
         }
+        FileEntry[] d = (FileEntry[])index.values().parallelStream()
+                .filter((e) -> !(e.getPath().equals(info.getPath())))
+                .filter((e) -> (e.getSize() == info.getSize()))
+                .filter((e) -> (e.getHash().equals(info.getHash())))
+                .toArray();
+        dupes.addAll(Arrays.asList(d));
 
         return dupes;
     }
@@ -67,9 +69,9 @@ public class DupeFinder {
 
         if (dupes.size() > 0) {
             System.out.println("-----\n" + info);
-            for (FileEntry dp : dupes) {
+            dupes.stream().forEach((dp) -> {
                 System.out.println(dp);
-            }
+            });
             System.out.println("-----\n");
         } else {
             System.out.println("No dupes found.");
@@ -123,17 +125,12 @@ public class DupeFinder {
             System.out.println("No index loaded");
             return;
         }
-
-        int cnt = 0;
-        HashMap<String, FileEntry> map = new HashMap<>();
-        for (FileEntry fe : index.values()) {
-            String key = fe.getSize() + "-" + fe.getHash();
-            if (map.containsKey(key)) {
-                cnt++;
-            } else {
-                map.put(key, fe);
-            }
-        }
-        System.out.println("Found " + cnt + " dupes in index.");
+        
+        int numOfFiles = index.values().size();
+        long numOfDistinctFiles = index.values().parallelStream()
+                .map((e) -> e.getSize() + "-" + e.getHash())
+                .distinct()
+                .count();
+        System.out.println("Found " + (numOfFiles - numOfDistinctFiles) + " dupes in index.");
     }
 }

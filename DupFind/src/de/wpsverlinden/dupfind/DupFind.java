@@ -27,7 +27,7 @@ public class DupFind {
     private HashCalculator hc;
     private DupeFinder df;
     private DupeRemover dr;
-    private String[] args;
+    private final String[] args;
 
     public static void main(String[] args) {
         DupFind app = new DupFind(args);
