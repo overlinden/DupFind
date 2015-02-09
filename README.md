@@ -13,7 +13,7 @@ Written by Oliver Verlinden (http://wps-verlinden.de)
                                        This directory is the base directory for the indexing and cleanup process  
     Indexing:  
         -> build_index               : Build a new index or update an existing index in the current directory  
-        -> calc_hashes [num_threads] : Optionally extend the previously generated index with hash information of each file  
+        -> calc_hashes               : Optionally extend the previously generated index with hash information of each file  
                                        The calculation time depends on the CPU/IO performance and the number/sizes of the 
                                        indexed files.  
     Searching:  
