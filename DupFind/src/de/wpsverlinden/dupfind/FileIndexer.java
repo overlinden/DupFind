@@ -26,7 +26,9 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -34,11 +36,12 @@ import java.util.zip.GZIPOutputStream;
 public class FileIndexer {
 
     private Map<String, FileEntry> index = new HashMap<>();
+    private Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
     private File dir;
     private String canonicalDir;
 
     public FileIndexer() {
-        
+
         try {
             this.dir = new File(".").getCanonicalFile();
             canonicalDir = dir.getCanonicalPath();
@@ -63,38 +66,40 @@ public class FileIndexer {
     }
 
     private void removeDeletedFiles() {
-        File file;
-        ArrayList<String> removeList = new ArrayList<>();
-        for (String path : index.keySet()) {
-            file = new File(path);
-            if (!file.exists() || !file.isFile()) {
-                removeList.add(path);
-            }
-        }
+        List<String> synchronizedRemoveList = Collections.synchronizedList(new ArrayList<>());
 
-        removeList.stream()
+        index.keySet().parallelStream()
+                .filter((e) -> {
+                    File f = new File(e);
+                    return !f.exists() || !f.isFile();
+                })
                 .forEach((e) -> {
-                    index.remove(e);
+                    synchronizedRemoveList.add(e);
+                });
+
+        synchronizedRemoveList.parallelStream()
+                .forEach((e) -> {
+                    synchronizedIndex.remove(e);
                 });
     }
 
     private void recAddFilesInDir(File dir) {
         try {
             Files.walk(Paths.get(dir.getCanonicalPath()))
-                    .sequential()
+                    .parallel()
                     .filter(Files::isRegularFile)
                     .map((e) -> e.toFile())
                     .filter((e) -> {
                         FileEntry fi = null;
                         try {
-                            fi = index.get(e.getCanonicalPath());
+                            fi = synchronizedIndex.get(e.getCanonicalPath());
                         } catch (IOException ex) {
                         }
                         return fi == null || fi.getLastModified() < e.lastModified();
                     })
                     .forEach((e) -> {
                         try {
-                            index.put(e.getCanonicalPath(), new FileEntry(e.getCanonicalPath(), e.length(), e.lastModified(), ""));
+                            synchronizedIndex.put(e.getCanonicalPath(), new FileEntry(e.getCanonicalPath(), e.length(), e.lastModified(), ""));
                             System.out.print(".");
                         } catch (IOException ex) {
                             System.err.println(ex);
@@ -171,12 +176,14 @@ public class FileIndexer {
         if (file.exists() && file.isFile()) {
             try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
                 index = (HashMap<String, FileEntry>) ois.readObject();
+                synchronizedIndex = Collections.synchronizedMap(index);
                 System.out.println("done. " + index.size() + " files in index.");
             } catch (Exception e) {
                 System.err.println(e);
             }
         } else {
             index = new HashMap<>();
+            synchronizedIndex = Collections.synchronizedMap(index);
             System.out.println("failed. No index found.");
         }
     }
