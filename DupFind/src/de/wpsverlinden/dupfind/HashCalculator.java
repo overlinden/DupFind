@@ -36,7 +36,6 @@ public class HashCalculator {
             throw new NoIndexException();
         }
         entries.parallelStream()
-                .filter((e) -> (e.getHash().isEmpty()))
                 .filter((e) -> {
                     File file = new File(e.getPath());
                     return (e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
