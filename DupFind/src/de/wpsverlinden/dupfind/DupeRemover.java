@@ -19,6 +19,7 @@ package de.wpsverlinden.dupfind;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -26,18 +27,17 @@ import java.util.Map;
 
 public class DupeRemover {
 
-    private final HashMap<String, FileEntry> index;
+    private final Map<String, FileEntry> index;
     private final DupeFinder df;
 
-    public DupeRemover(DupeFinder df, HashMap<String, FileEntry> index) {
+    public DupeRemover(DupeFinder df, Map<String, FileEntry> index) {
         this.index = index;
         this.df = df;
     }
 
     public void deleteDupesOf(String dir, String path) {
         if (index == null) {
-            System.out.println("No index loaded");
-            return;
+            throw new NoIndexException();
         }
         FileEntry info = (FileEntry) index.get(dir + File.separator + path);
         FileEntry info2 = (FileEntry) index.get(path);
@@ -50,35 +50,31 @@ public class DupeRemover {
 
         if (dupes.size() > 0) {
             System.out.println("Deleting dupes of " + info);
-//            for (FileEntry dp : dupes) {
-//                String delPath = dp.getPath();
-//                File del = new File(delPath);
-//                index.remove(delPath);
-//                del.delete();
-//            }
+
             Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
             dupes.parallelStream()
                     .map((e) -> e.getPath())
                     .forEach((e) -> {
-                File del = new File(e);
-                synchronizedIndex.remove(e);
-                del.delete();
-            });
+                        File del = new File(e);
+                        synchronizedIndex.remove(e);
+                        del.delete();
+                    });
         }
     }
 
     public void deleteDupes() {
         System.out.print("Delete dupes ...");
-        HashMap<String, List<FileEntry>> dupeMap = df.getDupeMap();
-        for (List<FileEntry> lst : dupeMap.values()) {
-            while (lst.size() > 1) {
-                String delPath = lst.get(lst.size() - 1).getPath();
-                File del = new File(delPath);
-                del.delete();
-                index.remove(delPath);
-                lst.remove(lst.size() - 1);
-            }
-        }
+        Collection<List<FileEntry>> dupeEntries = df.getDupeEntries();
+        dupeEntries.stream()
+                .forEach((lst) -> {
+                    while (lst.size() > 1) {
+                        String delPath = lst.get(lst.size() - 1).getPath();
+                        File del = new File(delPath);
+                        del.delete();
+                        index.remove(delPath);
+                        lst.remove(lst.size() - 1);
+                    }
+                });
         System.out.println(" done.");
     }
 }

@@ -17,13 +17,12 @@
  */
 package de.wpsverlinden.dupfind;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Scanner;
 
 public class DupFind {
 
-    private FileIndexer fi;
+    private final FileIndexer fi;
     private HashCalculator hc;
     private DupeFinder df;
     private DupeRemover dr;
@@ -43,57 +42,54 @@ public class DupFind {
     }
 
     private void run() {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        String line = "";
-        String[] words;
+        Scanner sc = new Scanner(new InputStreamReader(System.in));
 
         System.out.println("DupFind 1.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
         System.out.println("Type \"help\" to display usage information");
         changeDirectory(".");
-        try {
-            while (true) {
+        while (true) {
+            try {
                 System.out.print(fi.pwd());
-                line = br.readLine();
+                String line = sc.nextLine();
                 if ("exit".equals(line)) {
                     break;
                 }
-                words = line.split(" ");
-
+                String[] words = line.split(" ");
+                
                 if ("help".equals(words[0])) {
                     printHelp();
-
+                    
                 } else if ("cd".equals(words[0]) && words.length >= 2) {
                     changeDirectory(line.substring(words[0].length() + 1).replace("\"", ""));
-
+                    
                 } else if ("build_index".equals(words[0]) && words.length == 1) {
                     buildIndex();
-
+                    
                 } else if ("calc_hashes".equals(words[0]) && words.length >= 1 && words.length <= 2) {
-                    calcHashes((words.length == 2 ? Integer.parseInt(words[1]) : Runtime.getRuntime().availableProcessors()));
-
+                    calcHashes();
+                    
                 } else if ("show_dupes_of".equals(words[0]) && words.length >= 2) {
                     showDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
-
+                    
                 } else if ("show_dupes".equals(words[0]) && words.length == 1) {
                     showDupes();
-
+                    
                 } else if ("num_of_dupes".equals(words[0]) && words.length == 1) {
                     numOfDupes();
-
+                    
                 } else if ("delete_dupes_of".equals(words[0]) && words.length >= 2) {
                     deleteDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
-
+                    
                 } else if ("delete_dupes".equals(words[0]) && words.length == 1) {
                     deleteDupes();
-
+                    
                 } else {
                     System.out.println("Invaid command: " + line);
                     System.out.println("Type \"help\" to display usage information");
                 }
-
+            } catch (NoIndexException e) {
+                System.out.println(e.getMessage());
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -106,7 +102,7 @@ public class DupFind {
         System.out.println("                                This directory is the base directory for the indexing and cleanup process");
         System.out.println("Indexing:");
         System.out.println(" -> build_index               : Build a new index or update an existing index in the current directory");
-        System.out.println(" -> calc_hashes [num_threads] : Optionally extend the previously generated index with hash information of each file");
+        System.out.println(" -> calc_hashes               : Optionally extend the previously generated index with hash information of each file");
         System.out.println("                                The calculation time depends on the CPU/IO performance and the number/sizes");
         System.out.println("                                of the indexed files.");
         System.out.println("Searching:");
@@ -139,13 +135,9 @@ public class DupFind {
 
     private void changeDirectory(String folder) {
         fi.cd(folder);
-        if (fi.loadIndex()) {
-            df = new DupeFinder(fi.getIndex());
-            dr = new DupeRemover(df, fi.getIndex());
-        } else {
-            df = new DupeFinder(null);
-            dr = new DupeRemover(df, null);
-        }
+        fi.loadIndex();
+        df = new DupeFinder(fi.getIndex());
+        dr = new DupeRemover(df, fi.getIndex());
     }
 
     private void buildIndex() {
@@ -158,55 +150,31 @@ public class DupFind {
         fi.saveIndex();
     }
 
-    private void calcHashes(int numThreads) {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            hc = new HashCalculator(fi.getIndex());
-            hc.calculateHashes(numThreads);
-            fi.saveIndex();
-        }
+    private void calcHashes() {
+        hc = new HashCalculator(fi.getIndex().values());
+        hc.calculateHashes();
+        fi.saveIndex();
     }
 
     private void showDupesOf(String path) {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            df.showDupesOf(fi.pwd(), path);
-        }
+        df.showDupesOf(fi.pwd(), path);
     }
 
     private void showDupes() {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            df.showDupes();
-        }
+        df.showDupes();
     }
 
     private void numOfDupes() {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            df.showNumOfDupes();
-        }
+        df.showNumOfDupes();
     }
 
     private void deleteDupesOf(String path) {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            dr.deleteDupesOf(fi.pwd(), path);
-            fi.saveIndex();
-        }
+        dr.deleteDupesOf(fi.pwd(), path);
+        fi.saveIndex();
     }
 
     private void deleteDupes() {
-        if (fi.getIndex() == null) {
-            System.out.println("Please build index first.");
-        } else {
-            dr.deleteDupes();
-            fi.saveIndex();
-        }
+        dr.deleteDupes();
+        fi.saveIndex();
     }
 }

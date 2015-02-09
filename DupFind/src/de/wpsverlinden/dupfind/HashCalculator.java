@@ -21,23 +21,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.util.HashMap;
+import java.util.Collection;
 
 public class HashCalculator {
 
-    private final HashMap<String, FileEntry> index;
+    private final Collection<FileEntry> entries;
 
-    public HashCalculator(HashMap<String, FileEntry> index) {
-        this.index = index;
+    public HashCalculator(Collection<FileEntry> entries) {
+        this.entries = entries;
     }
 
-    public void calculateHashes(int numThreads) {
-        if (index == null) {
-            System.out.println("No index loaded");
-            return;
+    public void calculateHashes() {
+        if (entries == null) {
+            throw new NoIndexException();
         }
-        index.values().parallelStream()
+        entries.parallelStream()
                 .filter((e) -> (e.getHash().isEmpty()))
+                .filter((e) -> {
+                    File file = new File(e.getPath());
+                    return (e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
+                })
                 .forEach((e) -> {
                     calc(e);
                 });
@@ -45,14 +48,11 @@ public class HashCalculator {
     }
 
     public void calc(FileEntry current) {
-        File file = new File(current.getPath());
-        if (current.getHash().isEmpty() || current.getLastModified() < file.lastModified()) {
-            try {
-                current.setHash(calcHash(current.getPath()));
-                System.out.print(".");
-            } catch (Exception e) {
-                System.out.println("Error calculating hash for " + current.getPath());
-            }
+        try {
+            current.setHash(calcHash(current.getPath()));
+            System.out.print(".");
+        } catch (Exception e) {
+            System.out.println("Error calculating hash for " + current.getPath());
         }
     }
 

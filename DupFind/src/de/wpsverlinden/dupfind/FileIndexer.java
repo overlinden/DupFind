@@ -27,17 +27,20 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 public class FileIndexer {
 
-    private HashMap<String, FileEntry> index = new HashMap<>();
-    private File dir = new File(".");
+    private Map<String, FileEntry> index = new HashMap<>();
+    private File dir;
     private String canonicalDir;
 
     public FileIndexer() {
+        
         try {
+            this.dir = new File(".").getCanonicalFile();
             canonicalDir = dir.getCanonicalPath();
         } catch (IOException e) {
             canonicalDir = dir.getAbsolutePath();
@@ -102,7 +105,7 @@ public class FileIndexer {
         }
     }
 
-    public HashMap<String, FileEntry> getIndex() {
+    public Map<String, FileEntry> getIndex() {
         return index;
     }
 
@@ -162,23 +165,19 @@ public class FileIndexer {
     }
 
     @SuppressWarnings("unchecked")
-    public boolean loadIndex() {
-        boolean ret = false;
+    public void loadIndex() {
         File file = new File(canonicalDir + File.separator + "DupFind.index.gz");
         System.out.print("Loading index ... ");
         if (file.exists() && file.isFile()) {
             try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
                 index = (HashMap<String, FileEntry>) ois.readObject();
                 System.out.println("done. " + index.size() + " files in index.");
-                ret = true;
             } catch (Exception e) {
                 System.err.println(e);
             }
         } else {
             index = new HashMap<>();
             System.out.println("failed. No index found.");
-            ret = false;
         }
-        return ret;
     }
 }

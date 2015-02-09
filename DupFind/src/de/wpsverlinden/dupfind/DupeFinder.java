@@ -20,22 +20,23 @@ package de.wpsverlinden.dupfind;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class DupeFinder {
 
-    private final HashMap<String, FileEntry> index;
+    private final Map<String, FileEntry> index;
 
-    public DupeFinder(HashMap<String, FileEntry> index) {
+    public DupeFinder(Map<String, FileEntry> index) {
         this.index = index;
     }
 
     public ArrayList<FileEntry> getDupesOf(String path) {
         if (index == null) {
-            System.out.println("No index loaded");
-            return null;
+            throw new NoIndexException();
         }
         ArrayList<FileEntry> dupes = new ArrayList<>();
         FileEntry info = (FileEntry) index.get(path);
@@ -43,11 +44,11 @@ public class DupeFinder {
             System.out.println("Could not find \"" + path + "\" in index");
             return dupes;
         }
-        FileEntry[] d = (FileEntry[])index.values().parallelStream()
+        FileEntry[] d = index.values().parallelStream()
                 .filter((e) -> !(e.getPath().equals(info.getPath())))
                 .filter((e) -> (e.getSize() == info.getSize()))
                 .filter((e) -> (e.getHash().equals(info.getHash())))
-                .toArray();
+                .toArray(FileEntry[]::new);
         dupes.addAll(Arrays.asList(d));
 
         return dupes;
@@ -55,8 +56,7 @@ public class DupeFinder {
 
     public void showDupesOf(String dir, String path) {
         if (index == null) {
-            System.out.println("No index loaded");
-            return;
+            throw new NoIndexException();
         }
         FileEntry info = (FileEntry) index.get(dir + File.separator + path);
         FileEntry info2 = (FileEntry) index.get(path);
@@ -80,8 +80,8 @@ public class DupeFinder {
 
     public void showDupes() {
         boolean output = false;
-        HashMap<String, List<FileEntry>> dupeMap = getDupeMap();
-        for (List<FileEntry> lst : dupeMap.values()) {
+        Collection<List<FileEntry>> dupeEntries = getDupeEntries();
+        for (List<FileEntry> lst : dupeEntries) {
             if (lst.size() >= 2) {
                 output = true;
                 System.out.println("-----");
@@ -98,13 +98,11 @@ public class DupeFinder {
         }
     }
 
-    public HashMap<String, List<FileEntry>> getDupeMap() {
-        HashMap<String, List<FileEntry>> dupeMap = new HashMap<>();
+    public Collection<List<FileEntry>> getDupeEntries() {
+        Map<String, List<FileEntry>> dupeMap = new HashMap<>();
         if (index == null) {
-            System.out.println("No index loaded");
-            return dupeMap;
+            throw new NoIndexException();
         }
-
 
         for (FileEntry fe : index.values()) {
             String key = fe.getSize() + "-" + fe.getHash();
@@ -117,13 +115,12 @@ public class DupeFinder {
                 lst.add(fe);
             }
         }
-        return dupeMap;
+        return dupeMap.values();
     }
 
     public void showNumOfDupes() {
         if (index == null) {
-            System.out.println("No index loaded");
-            return;
+            throw new NoIndexException();
         }
         
         int numOfFiles = index.values().size();
