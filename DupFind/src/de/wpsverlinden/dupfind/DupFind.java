@@ -44,7 +44,7 @@ public class DupFind {
     private void run() {
         Scanner sc = new Scanner(new InputStreamReader(System.in));
 
-        System.out.println("DupFind 1.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
+        System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
         System.out.println("Type \"help\" to display usage information");
         changeDirectory(".");
         while (true) {
@@ -94,7 +94,7 @@ public class DupFind {
     }
 
     private static void printHelp() {
-        System.out.println("DupFind 1.0 - written by Oliver Verlinden (http://wps-verlinden.de)\n");
+        System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)\n");
         System.out.println("General commands:");
         System.out.println(" -> help                      : Displays this help message");
         System.out.println(" -> exit                      : Close this application");
