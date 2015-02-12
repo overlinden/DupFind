@@ -17,10 +17,10 @@
  */
 package de.wpsverlinden.dupfind;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,23 +33,20 @@ public class DupeFinder {
         this.index = index;
     }
 
-    public ArrayList<FileEntry> getDupesOf(String path) {
+    public Collection<FileEntry> getDupesOf(String path) {
         if (index == null) {
             throw new NoIndexException();
         }
-        ArrayList<FileEntry> dupes = new ArrayList<>();
         FileEntry info = (FileEntry) index.get(path);
         if (info == null) {
             System.out.println("Could not find \"" + path + "\" in index");
-            return dupes;
+            return Collections.EMPTY_LIST;
         }
-        FileEntry[] d = index.values().parallelStream()
+        Collection<FileEntry> dupes = index.values().parallelStream()
                 .filter((e) -> !(e.getPath().equals(info.getPath())))
                 .filter((e) -> (e.getSize() == info.getSize()))
                 .filter((e) -> (e.getHash().equals(info.getHash())))
-                .toArray(FileEntry[]::new);
-        dupes.addAll(Arrays.asList(d));
-
+                .collect(Collectors.toList());
         return dupes;
     }
 
@@ -63,13 +60,11 @@ public class DupeFinder {
             return;
         }
         
-        ArrayList<FileEntry> dupes = getDupesOf(info.getPath());
+        Collection<FileEntry> dupes = getDupesOf(info.getPath());
 
         if (dupes.size() > 0) {
             System.out.println("-----\n" + info);
-            dupes.stream().forEach((dp) -> {
-                System.out.println(dp);
-            });
+            dupes.stream().forEach(System.out::println);
             System.out.println("-----\n");
         } else {
             System.out.println("No dupes found.");
