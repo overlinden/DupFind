@@ -18,9 +18,7 @@
 package de.wpsverlinden.dupfind;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -48,14 +46,14 @@ public class DupeRemover {
         if (dupes.size() > 0) {
             System.out.println("Deleting dupes of " + info);
 
-            Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
-            dupes.parallelStream()
+            dupes.stream()
                     .map((e) -> e.getPath())
                     .forEach((e) -> {
                         File del = new File(System.getProperty("user.dir") + e);
-                        synchronizedIndex.remove(e);
+                        index.remove(e);
                         del.delete();
                     });
+            System.out.println(" done.");
         }
     }
 

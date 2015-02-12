@@ -52,7 +52,7 @@ public class HashCalculator {
             current.setHash(calcHash(System.getProperty("user.dir") + current.getPath()));
             System.out.print(".");
         } catch (Exception e) {
-            System.out.println("Error calculating hash for " + current.getPath());
+            System.out.println("Error calculating hash for " + current.getPath() + ": " + e.getMessage());
         }
     }
 
