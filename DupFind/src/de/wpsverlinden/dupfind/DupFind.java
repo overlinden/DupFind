@@ -43,9 +43,10 @@ public class DupFind {
     private DupFind(String[] args) throws IOException {
         this.args = args;
         fi = new FileIndexer();
+        fi.loadIndex();
         hc = new HashCalculator(null);
-        df = new DupeFinder(null);
-        dr = new DupeRemover(null, null);
+        df = new DupeFinder(fi.getIndex());
+        dr = new DupeRemover(df, fi.getIndex());
     }
 
     private void run() throws IOException {
@@ -53,7 +54,6 @@ public class DupFind {
 
         System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
         System.out.println("Type \"help\" to display usage information");
-        changeDirectory(".");
         while (true) {
             try {
                 System.out.print(fi.pwd());
@@ -65,10 +65,6 @@ public class DupFind {
                 
                 if ("help".equals(words[0])) {
                     printHelp();
-                    
-                } else if ("cd".equals(words[0]) && words.length >= 2) {
-                    changeDirectory(line.substring(words[0].length() + 1).replace("\"", ""));
-                    
                 } else if ("build_index".equals(words[0]) && words.length == 1) {
                     buildIndex();
                     
@@ -105,8 +101,6 @@ public class DupFind {
         System.out.println("General commands:");
         System.out.println(" -> help                      : Displays this help message");
         System.out.println(" -> exit                      : Close this application");
-        System.out.println(" -> cd path                   : Navigates to the given directory");
-        System.out.println("                                This directory is the base directory for the indexing and cleanup process");
         System.out.println("Indexing:");
         System.out.println(" -> build_index               : Build a new index or update an existing index in the current directory");
         System.out.println(" -> calc_hashes               : Optionally extend the previously generated index with hash information of each file");
@@ -132,19 +126,11 @@ public class DupFind {
         System.out.println();
         System.out.println();
         System.out.println("Usage example (Find all dupes in \"D:\\Images\\\" and remove them):");
-        System.out.println("1) cd D:\\Images");
-        System.out.println("2) build_index");
-        System.out.println("3) calc_hashes");
-        System.out.println("4) num_of_dupes");
-        System.out.println("5) show_dupes");
-        System.out.println("6) delete_dupes");
-    }
-
-    private void changeDirectory(String folder) throws IOException {
-        fi.cd(folder);
-        fi.loadIndex();
-        df = new DupeFinder(fi.getIndex());
-        dr = new DupeRemover(df, fi.getIndex());
+        System.out.println("1) build_index");
+        System.out.println("2) calc_hashes");
+        System.out.println("3) num_of_dupes");
+        System.out.println("4) show_dupes");
+        System.out.println("5) delete_dupes");
     }
 
     private void buildIndex() {
@@ -157,7 +143,7 @@ public class DupFind {
         fi.saveIndex();
     }
 
-    private void calcHashes() {
+    private void calcHashes() throws IOException {
         hc = new HashCalculator(fi.getIndex().values());
         hc.calculateHashes();
         fi.saveIndex();

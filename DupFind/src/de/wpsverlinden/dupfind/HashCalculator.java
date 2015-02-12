@@ -19,6 +19,7 @@ package de.wpsverlinden.dupfind;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Collection;
@@ -26,9 +27,11 @@ import java.util.Collection;
 public class HashCalculator {
 
     private final Collection<FileEntry> entries;
+    private final String canonicalDir;
 
-    public HashCalculator(Collection<FileEntry> entries) {
+    public HashCalculator(Collection<FileEntry> entries) throws IOException {
         this.entries = entries;
+        canonicalDir = new File(".").getCanonicalPath();
     }
 
     public void calculateHashes() {
@@ -38,7 +41,7 @@ public class HashCalculator {
         System.out.print("Calculating hashes ...");
         entries.parallelStream()
                 .filter((e) -> {
-                    File file = new File(e.getPath());
+                    File file = new File(canonicalDir + e.getPath());
                     return (e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
                 })
                 .forEach((e) -> {
@@ -49,7 +52,7 @@ public class HashCalculator {
 
     public void calc(FileEntry current) {
         try {
-            current.setHash(calcHash(current.getPath()));
+            current.setHash(calcHash(canonicalDir + current.getPath()));
             System.out.print(".");
         } catch (Exception e) {
             System.out.println("Error calculating hash for " + current.getPath());

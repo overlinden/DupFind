@@ -37,18 +37,19 @@ public final class FileIndexer {
 
     private Map<String, FileEntry> index = new HashMap<>();
     private Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
-    private File dir;
-    private String canonicalDir;
+    private final File dir;
+    private final String canonicalDir;
 
     public FileIndexer() throws IOException {
-        cd(".");
+        this.dir = new File(".");
+        canonicalDir = this.dir.getCanonicalPath();
     }
 
     public void buildIndex() {
         pruneDeletedFiles();
         addUpdatedFiles(dir);
-        index.remove(canonicalDir + File.separator + "DupFind.index.gz");
-        System.out.println("Indexing files done. " + index.size() + " file(s) in index");
+        index.remove("/DupFind.index.gz");
+        System.out.println("Indexing files done. " + index.size() + " file(s) in index.");
     }
 
     public void pruneDeletedFiles() {
@@ -68,7 +69,7 @@ public final class FileIndexer {
     private void removeDeletedFiles() {
         List<String> removeList = index.keySet().parallelStream()
                 .filter((e) -> {
-                    File f = new File(e);
+                    File f = new File(canonicalDir + e);
                     return !f.exists() || !f.isFile();
                 })
                 .collect(Collectors.toList());
@@ -83,60 +84,24 @@ public final class FileIndexer {
                     .filter(Files::isRegularFile)
                     .map((e) -> e.toFile())
                     .filter((e) -> {
-                        FileEntry fi = null;
-                        try {
-                            fi = synchronizedIndex.get(e.getCanonicalPath());
-                        } catch (IOException ex) {
-                        }
+                        FileEntry fi = synchronizedIndex.get(getPath(e));
                         return fi == null || fi.getLastModified() < e.lastModified();
                     })
                     .forEach((e) -> {
-                        try {
-                            synchronizedIndex.put(e.getCanonicalPath(), new FileEntry(e.getCanonicalPath(), e.length(), e.lastModified(), ""));
-                            System.out.print(".");
-                        } catch (IOException ex) {
-                            System.err.println(ex);
-                        }
+                        synchronizedIndex.put(getPath(e), new FileEntry(getPath(e), e.length(), e.lastModified(), ""));
+                        System.out.print(".");
                     });
         } catch (IOException ex) {
             System.err.println(ex);
         }
     }
 
-    public Map<String, FileEntry> getIndex() {
-        return index;
+    private String getPath(File e) {
+        return e.getPath().substring(canonicalDir.length()).replace("\\", "/");
     }
 
-    public void cd(String dir) throws IOException {
-        if (".".equals(dir)) {
-            this.dir = new File(dir).getCanonicalFile();
-            canonicalDir = this.dir.getPath();
-            return;
-        }
-        
-        //Navigate up
-        if ("..".equals(dir) && this.dir.getParent() != null) {
-            this.dir = new File(this.dir.getParent());
-            this.canonicalDir = this.dir.getPath();
-            return;
-        }
-
-        //Navigate into sub directory
-        File directory = new File(this.dir + File.separator + dir);
-        if (directory.exists() && directory.isDirectory()) {
-            this.dir = directory;
-            this.canonicalDir = this.dir.getPath();
-            return;
-        }
-
-        //Navigate to full specified path
-        directory = new File(dir);
-        if (directory.exists() && directory.isDirectory()) {
-            this.dir = directory;
-            this.canonicalDir = this.dir.getPath();
-            return;
-        }
-        System.out.println("Invalid directory: " + dir);
+    public Map<String, FileEntry> getIndex() {
+        return index;
     }
 
     public String pwd() {
@@ -144,7 +109,7 @@ public final class FileIndexer {
     }
 
     public void saveIndex() {
-        String outFile = canonicalDir + File.separator + "DupFind.index.gz";
+        File outFile = new File("DupFind.index.gz");
         System.out.print("Saving index ... ");
         try (ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(outFile)))) {
             oos.writeObject(index);
@@ -157,7 +122,7 @@ public final class FileIndexer {
 
     @SuppressWarnings("unchecked")
     public void loadIndex() {
-        File file = new File(canonicalDir + File.separator + "DupFind.index.gz");
+        File file = new File("DupFind.index.gz");
         System.out.print("Loading index ... ");
         if (file.exists() && file.isFile()) {
             try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
