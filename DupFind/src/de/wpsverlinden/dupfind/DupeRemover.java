@@ -21,7 +21,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,17 +34,15 @@ public class DupeRemover {
         this.df = df;
     }
 
-    public void deleteDupesOf(String dir, String path) {
+    public void deleteDupesOf(String path) {
         if (index == null) {
             throw new NoIndexException();
         }
-        FileEntry info = (FileEntry) index.get(dir + File.separator + path);
-        FileEntry info2 = (FileEntry) index.get(path);
-        if (info == null && info2 == null) {
+        FileEntry info = (FileEntry) index.get(path);
+        if (info == null) {
             System.out.println("Index doesn't contain " + path);
             return;
         }
-        info = (info != null ? info : info2);
         ArrayList<FileEntry> dupes = df.getDupesOf(info.getPath());
 
         if (dupes.size() > 0) {
@@ -55,7 +52,7 @@ public class DupeRemover {
             dupes.parallelStream()
                     .map((e) -> e.getPath())
                     .forEach((e) -> {
-                        File del = new File(e);
+                        File del = new File(System.getProperty("user.dir") + e);
                         synchronizedIndex.remove(e);
                         del.delete();
                     });
@@ -69,7 +66,7 @@ public class DupeRemover {
                 .forEach((lst) -> {
                     while (lst.size() > 1) {
                         String delPath = lst.get(lst.size() - 1).getPath();
-                        File del = new File(delPath);
+                        File del = new File(System.getProperty("user.dir") + delPath);
                         del.delete();
                         index.remove(delPath);
                         lst.remove(lst.size() - 1);

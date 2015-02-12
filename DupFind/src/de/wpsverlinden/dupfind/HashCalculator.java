@@ -27,11 +27,9 @@ import java.util.Collection;
 public class HashCalculator {
 
     private final Collection<FileEntry> entries;
-    private final String canonicalDir;
 
     public HashCalculator(Collection<FileEntry> entries) throws IOException {
         this.entries = entries;
-        canonicalDir = new File(".").getCanonicalPath();
     }
 
     public void calculateHashes() {
@@ -41,7 +39,7 @@ public class HashCalculator {
         System.out.print("Calculating hashes ...");
         entries.parallelStream()
                 .filter((e) -> {
-                    File file = new File(canonicalDir + e.getPath());
+                    File file = new File(System.getProperty("user.dir") + e.getPath());
                     return (e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
                 })
                 .forEach((e) -> {
@@ -52,7 +50,7 @@ public class HashCalculator {
 
     public void calc(FileEntry current) {
         try {
-            current.setHash(calcHash(canonicalDir + current.getPath()));
+            current.setHash(calcHash(System.getProperty("user.dir") + current.getPath()));
             System.out.print(".");
         } catch (Exception e) {
             System.out.println("Error calculating hash for " + current.getPath());

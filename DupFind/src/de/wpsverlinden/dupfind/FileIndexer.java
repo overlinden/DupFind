@@ -105,7 +105,7 @@ public final class FileIndexer {
     }
 
     public String pwd() {
-        return canonicalDir + "> ";
+        return (canonicalDir) + " > ";
     }
 
     public void saveIndex() {

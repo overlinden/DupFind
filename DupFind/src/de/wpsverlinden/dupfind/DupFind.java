@@ -26,34 +26,32 @@ import java.util.logging.Logger;
 public class DupFind {
 
     private final FileIndexer fi;
-    private HashCalculator hc;
-    private DupeFinder df;
-    private DupeRemover dr;
-    private final String[] args;
+    private final HashCalculator hc;
+    private final DupeFinder df;
+    private final DupeRemover dr;
 
     public static void main(String[] args) {
         try {
-            DupFind app = new DupFind(args);
+            DupFind app = new DupFind();
             app.run();
         } catch (IOException ex) {
             Logger.getLogger(DupFind.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    private DupFind(String[] args) throws IOException {
-        this.args = args;
+    private DupFind() throws IOException {
+
+        System.out.println("DupFind 2.1 - written by Oliver Verlinden (http://wps-verlinden.de)");
+        System.out.println("Type \"help\" to display usage information");
         fi = new FileIndexer();
         fi.loadIndex();
-        hc = new HashCalculator(null);
+        hc = new HashCalculator(fi.getIndex().values());
         df = new DupeFinder(fi.getIndex());
         dr = new DupeRemover(df, fi.getIndex());
     }
 
     private void run() throws IOException {
         Scanner sc = new Scanner(new InputStreamReader(System.in));
-
-        System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
-        System.out.println("Type \"help\" to display usage information");
         while (true) {
             try {
                 System.out.print(fi.pwd());
@@ -97,7 +95,7 @@ public class DupFind {
     }
 
     private static void printHelp() {
-        System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)\n");
+        System.out.println("DupFind 2.1 - written by Oliver Verlinden (http://wps-verlinden.de)\n");
         System.out.println("General commands:");
         System.out.println(" -> help                      : Displays this help message");
         System.out.println(" -> exit                      : Close this application");
@@ -110,6 +108,7 @@ public class DupFind {
         System.out.println(" -> num_of_dupes              : Displays the total number of dupes");
         System.out.println(" -> show_dupes_of \"path\"      : Displays dupes of the file specified by \"path\"");
         System.out.println(" -> show_dupes                : Displays a list of all duplicate files within the indexed directory");
+        System.out.println("Cleanup:");
         System.out.println(" -> delete_dupes_of \"path\"    : Deletes all duplicates of the file specified by \"path\"");
         System.out.println(" -> delete_dupes              : Deletes all duplicate files within the indexed directory");
         System.out.println();
@@ -126,31 +125,27 @@ public class DupFind {
         System.out.println();
         System.out.println();
         System.out.println("Usage example (Find all dupes in \"D:\\Images\\\" and remove them):");
-        System.out.println("1) build_index");
-        System.out.println("2) calc_hashes");
-        System.out.println("3) num_of_dupes");
-        System.out.println("4) show_dupes");
-        System.out.println("5) delete_dupes");
+        System.out.println("1) Navigate to \"D:\\Images\\\" directory");
+        System.out.println("2) Start dupfind via \"java -jar DupFind.jar\"");
+        System.out.println("3) build index");
+        System.out.println("4) calc_hashes");
+        System.out.println("5) num_of_dupes");
+        System.out.println("6) show_dupes");
+        System.out.println("7) delete_dupes");
     }
 
     private void buildIndex() {
-        boolean initialBuild = (fi.getIndex() != null);
         fi.buildIndex();
-        if (initialBuild) {
-            df = new DupeFinder(fi.getIndex());
-            dr = new DupeRemover(df, fi.getIndex());
-        }
         fi.saveIndex();
     }
 
     private void calcHashes() throws IOException {
-        hc = new HashCalculator(fi.getIndex().values());
         hc.calculateHashes();
         fi.saveIndex();
     }
 
     private void showDupesOf(String path) {
-        df.showDupesOf(fi.pwd(), path);
+        df.showDupesOf(path);
     }
 
     private void showDupes() {
@@ -162,7 +157,7 @@ public class DupFind {
     }
 
     private void deleteDupesOf(String path) {
-        dr.deleteDupesOf(fi.pwd(), path);
+        dr.deleteDupesOf(path);
         fi.saveIndex();
     }
 

@@ -53,17 +53,16 @@ public class DupeFinder {
         return dupes;
     }
 
-    public void showDupesOf(String dir, String path) {
+    public void showDupesOf(String path) {
         if (index == null) {
             throw new NoIndexException();
         }
-        FileEntry info = (FileEntry) index.get(dir + File.separator + path);
-        FileEntry info2 = (FileEntry) index.get(path);
-        if (info == null && info2 == null) {
+        FileEntry info = (FileEntry) index.get(path);
+        if (info == null) {
             System.out.println("Index doesn't contain " + path);
             return;
         }
-        info = (info != null ? info : info2);
+        
         ArrayList<FileEntry> dupes = getDupesOf(info.getPath());
 
         if (dupes.size() > 0) {
