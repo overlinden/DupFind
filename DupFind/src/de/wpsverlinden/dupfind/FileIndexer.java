@@ -17,15 +17,14 @@
  */
 package de.wpsverlinden.dupfind;
 
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +34,7 @@ import java.util.zip.GZIPOutputStream;
 
 public final class FileIndexer {
 
-    private Map<String, FileEntry> index = new HashMap<>();
-    private Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
+    private final Map<String, FileEntry> index = new HashMap<>();
     private final File dir;
     private final String canonicalDir;
 
@@ -79,18 +77,16 @@ public final class FileIndexer {
 
     private void recAddFilesInDir(File dir) {
         try {
-            Files.walk(Paths.get(dir.getCanonicalPath()))
+            Map<String, FileEntry> collect = Files.walk(Paths.get(dir.getCanonicalPath()))
                     .parallel()
                     .filter(Files::isRegularFile)
                     .map((e) -> e.toFile())
                     .filter((e) -> {
-                        FileEntry fi = synchronizedIndex.get(getPath(e));
+                        FileEntry fi = index.get(getPath(e));
                         return fi == null || fi.getLastModified() < e.lastModified();
                     })
-                    .forEach((e) -> {
-                        synchronizedIndex.put(getPath(e), new FileEntry(getPath(e), e.length(), e.lastModified(), ""));
-                        System.out.print(".");
-                    });
+                    .collect(Collectors.toMap((e) -> getPath(e), (e) -> new FileEntry(getPath(e), e.length(), e.lastModified(), "")));
+            index.putAll(collect);
         } catch (IOException ex) {
             System.err.println(ex);
         }
@@ -111,9 +107,9 @@ public final class FileIndexer {
     public void saveIndex() {
         File outFile = new File("DupFind.index.gz");
         System.out.print("Saving index ... ");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(outFile)))) {
-            oos.writeObject(index);
-            oos.flush();
+        try (XMLEncoder xenc = new XMLEncoder(new GZIPOutputStream(new FileOutputStream(outFile)))) {
+            xenc.writeObject(index);
+            xenc.flush();
             System.out.println("done.  " + index.size() + " files in index.");
         } catch (IOException e) {
             System.err.println(e);
@@ -125,17 +121,15 @@ public final class FileIndexer {
         File file = new File("DupFind.index.gz");
         System.out.print("Loading index ... ");
         if (file.exists() && file.isFile()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)))) {
-                index = (HashMap<String, FileEntry>) ois.readObject();
-                synchronizedIndex = Collections.synchronizedMap(index);
+            try (XMLDecoder xdec = new XMLDecoder(new GZIPInputStream(new FileInputStream(file)))) {
+                index.clear();
+                index.putAll((HashMap<String, FileEntry>) xdec.readObject());
                 System.out.println("done. " + index.size() + " files in index.");
             } catch (Exception e) {
                 System.err.println(e);
             }
         } else {
-            index = new HashMap<>();
-            synchronizedIndex = Collections.synchronizedMap(index);
-            System.out.println("failed. No index found.");
+            System.out.println("failed. Creating new index.");
         }
     }
 }
