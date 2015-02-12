@@ -35,6 +35,7 @@ public class HashCalculator {
         if (entries == null) {
             throw new NoIndexException();
         }
+        System.out.print("Calculating hashes ...");
         entries.parallelStream()
                 .filter((e) -> {
                     File file = new File(e.getPath());

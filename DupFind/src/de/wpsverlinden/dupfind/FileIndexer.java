@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class FileIndexer {
+public final class FileIndexer {
 
     private Map<String, FileEntry> index = new HashMap<>();
     private Map<String, FileEntry> synchronizedIndex = Collections.synchronizedMap(index);
@@ -110,14 +110,14 @@ public class FileIndexer {
     public void cd(String dir) throws IOException {
         if (".".equals(dir)) {
             this.dir = new File(dir).getCanonicalFile();
-            canonicalDir = this.dir.getCanonicalPath();
+            canonicalDir = this.dir.getPath();
             return;
         }
         
         //Navigate up
         if ("..".equals(dir) && this.dir.getParent() != null) {
             this.dir = new File(this.dir.getParent());
-            this.canonicalDir = this.dir.getCanonicalPath();
+            this.canonicalDir = this.dir.getPath();
             return;
         }
 
@@ -125,7 +125,7 @@ public class FileIndexer {
         File directory = new File(this.dir + File.separator + dir);
         if (directory.exists() && directory.isDirectory()) {
             this.dir = directory;
-            this.canonicalDir = this.dir.getCanonicalPath();
+            this.canonicalDir = this.dir.getPath();
             return;
         }
 
@@ -133,7 +133,7 @@ public class FileIndexer {
         directory = new File(dir);
         if (directory.exists() && directory.isDirectory()) {
             this.dir = directory;
-            this.canonicalDir = this.dir.getCanonicalPath();
+            this.canonicalDir = this.dir.getPath();
             return;
         }
         System.out.println("Invalid directory: " + dir);

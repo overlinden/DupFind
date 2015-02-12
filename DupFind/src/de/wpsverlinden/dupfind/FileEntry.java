@@ -66,7 +66,7 @@ public class FileEntry implements Serializable {
     public void setSize(long size) {
         this.size = size;
     }
-
+    
     @Override
     public String toString() {
         return "File[" + getPath() + "; size=" + getSize() + " byte; hash=" + getHash() + "]";
