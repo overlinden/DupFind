@@ -25,11 +25,11 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -40,22 +40,15 @@ public class FileIndexer {
     private File dir;
     private String canonicalDir;
 
-    public FileIndexer() {
-
-        try {
-            this.dir = new File(".").getCanonicalFile();
-            canonicalDir = dir.getCanonicalPath();
-        } catch (IOException e) {
-            canonicalDir = dir.getAbsolutePath();
-        }
+    public FileIndexer() throws IOException {
+        cd(".");
     }
 
     public void buildIndex() {
-        System.out.print("Indexing files ...");
-        removeDeletedFiles();
-        recAddFilesInDir(dir);
+        pruneDeletedFiles();
+        addUpdatedFiles(dir);
         index.remove(canonicalDir + File.separator + "DupFind.index.gz");
-        System.out.println(" done. " + index.size() + " file(s) in index");
+        System.out.println("Indexing files done. " + index.size() + " file(s) in index");
     }
 
     public void pruneDeletedFiles() {
@@ -65,22 +58,22 @@ public class FileIndexer {
         System.out.println("done. Removed " + (oldSize - index.size()) + " file(s) from index");
     }
 
-    private void removeDeletedFiles() {
-        List<String> synchronizedRemoveList = Collections.synchronizedList(new ArrayList<>());
+    public void addUpdatedFiles(File dir) {
+        int oldSize = index.size();
+        System.out.print("Adding updated files ... ");
+        recAddFilesInDir(dir);
+        System.out.println("done. Updated " + (index.size() - oldSize) + " file(s) in index");
+    }
 
-        index.keySet().parallelStream()
+    private void removeDeletedFiles() {
+        List<String> removeList = index.keySet().parallelStream()
                 .filter((e) -> {
                     File f = new File(e);
                     return !f.exists() || !f.isFile();
                 })
-                .forEach((e) -> {
-                    synchronizedRemoveList.add(e);
-                });
+                .collect(Collectors.toList());
 
-        synchronizedRemoveList.parallelStream()
-                .forEach((e) -> {
-                    synchronizedIndex.remove(e);
-                });
+        index.keySet().removeAll(removeList);
     }
 
     private void recAddFilesInDir(File dir) {
@@ -114,40 +107,33 @@ public class FileIndexer {
         return index;
     }
 
-    public void cd(String dir) {
+    public void cd(String dir) throws IOException {
         if (".".equals(dir)) {
+            this.dir = new File(dir).getCanonicalFile();
+            canonicalDir = this.dir.getCanonicalPath();
             return;
         }
+        
+        //Navigate up
         if ("..".equals(dir) && this.dir.getParent() != null) {
             this.dir = new File(this.dir.getParent());
-            try {
-                this.canonicalDir = this.dir.getCanonicalPath();
-            } catch (IOException e) {
-                this.canonicalDir = this.dir.getAbsolutePath();
-            }
+            this.canonicalDir = this.dir.getCanonicalPath();
             return;
         }
 
+        //Navigate into sub directory
         File directory = new File(this.dir + File.separator + dir);
-
         if (directory.exists() && directory.isDirectory()) {
             this.dir = directory;
-            try {
-                this.canonicalDir = this.dir.getCanonicalPath();
-            } catch (IOException e) {
-                this.canonicalDir = this.dir.getAbsolutePath();
-            }
+            this.canonicalDir = this.dir.getCanonicalPath();
             return;
         }
 
+        //Navigate to full specified path
         directory = new File(dir);
         if (directory.exists() && directory.isDirectory()) {
             this.dir = directory;
-            try {
-                this.canonicalDir = this.dir.getCanonicalPath();
-            } catch (IOException e) {
-                this.canonicalDir = this.dir.getAbsolutePath();
-            }
+            this.canonicalDir = this.dir.getCanonicalPath();
             return;
         }
         System.out.println("Invalid directory: " + dir);

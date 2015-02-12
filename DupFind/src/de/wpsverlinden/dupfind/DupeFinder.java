@@ -21,10 +21,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DupeFinder {
 
@@ -79,42 +78,26 @@ public class DupeFinder {
     }
 
     public void showDupes() {
-        boolean output = false;
         Collection<List<FileEntry>> dupeEntries = getDupeEntries();
-        for (List<FileEntry> lst : dupeEntries) {
-            if (lst.size() >= 2) {
-                output = true;
-                System.out.println("-----");
-                while (!lst.isEmpty()) {
-                    System.out.println(lst.get(0));
-                    lst.remove(0);
-                }
-                System.out.println("-----\n");
-            }
-        }
-
-        if (!output) {
-            System.out.println("No dupes found.");
-        }
+        dupeEntries.stream()
+                .filter((e) -> e.size() >= 2)
+                .forEach((lst) -> {
+                    System.out.println("-----");
+                    while (!lst.isEmpty()) {
+                        System.out.println(lst.get(0));
+                        lst.remove(0);
+                    }
+                    System.out.println("-----\n");
+                });
     }
 
     public Collection<List<FileEntry>> getDupeEntries() {
-        Map<String, List<FileEntry>> dupeMap = new HashMap<>();
         if (index == null) {
             throw new NoIndexException();
         }
 
-        for (FileEntry fe : index.values()) {
-            String key = fe.getSize() + "-" + fe.getHash();
-            List<FileEntry> lst = dupeMap.get(key);
-            if (lst == null) {
-                lst = new LinkedList<>();
-                dupeMap.put(key, lst);
-                lst.add(fe);
-            } else {
-                lst.add(fe);
-            }
-        }
+        Map<String, List<FileEntry>> dupeMap = index.values().parallelStream()
+                .collect(Collectors.groupingBy((e) -> e.getSize() + "-" + e.getHash()));
         return dupeMap.values();
     }
 
@@ -122,7 +105,7 @@ public class DupeFinder {
         if (index == null) {
             throw new NoIndexException();
         }
-        
+
         int numOfFiles = index.values().size();
         long numOfDistinctFiles = index.values().parallelStream()
                 .map((e) -> e.getSize() + "-" + e.getHash())

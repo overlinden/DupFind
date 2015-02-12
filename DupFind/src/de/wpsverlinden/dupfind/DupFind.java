@@ -17,8 +17,11 @@
  */
 package de.wpsverlinden.dupfind;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DupFind {
 
@@ -29,11 +32,15 @@ public class DupFind {
     private final String[] args;
 
     public static void main(String[] args) {
-        DupFind app = new DupFind(args);
-        app.run();
+        try {
+            DupFind app = new DupFind(args);
+            app.run();
+        } catch (IOException ex) {
+            Logger.getLogger(DupFind.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
-    private DupFind(String[] args) {
+    private DupFind(String[] args) throws IOException {
         this.args = args;
         fi = new FileIndexer();
         hc = new HashCalculator(null);
@@ -41,7 +48,7 @@ public class DupFind {
         dr = new DupeRemover(null, null);
     }
 
-    private void run() {
+    private void run() throws IOException {
         Scanner sc = new Scanner(new InputStreamReader(System.in));
 
         System.out.println("DupFind 2.0 - written by Oliver Verlinden (http://wps-verlinden.de)");
@@ -133,7 +140,7 @@ public class DupFind {
         System.out.println("6) delete_dupes");
     }
 
-    private void changeDirectory(String folder) {
+    private void changeDirectory(String folder) throws IOException {
         fi.cd(folder);
         fi.loadIndex();
         df = new DupeFinder(fi.getIndex());
