@@ -43,7 +43,7 @@ public class DupeRemover {
             System.out.println("Index doesn't contain " + path);
             return;
         }
-        ArrayList<FileEntry> dupes = df.getDupesOf(info.getPath());
+        Collection<FileEntry> dupes = df.getDupesOf(info.getPath());
 
         if (dupes.size() > 0) {
             System.out.println("Deleting dupes of " + info);
