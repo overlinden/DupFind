@@ -19,7 +19,6 @@ package de.wpsverlinden.dupfind;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Collection;
@@ -28,7 +27,7 @@ public class HashCalculator {
 
     private final Collection<FileEntry> entries;
 
-    public HashCalculator(Collection<FileEntry> entries) throws IOException {
+    public HashCalculator(Collection<FileEntry> entries) {
         this.entries = entries;
     }
 
@@ -62,18 +61,16 @@ public class HashCalculator {
         MessageDigest digest = MessageDigest.getInstance("MD5");
         int numRead;
         byte[] hash = null;
-        InputStream fis;
         File file = new File(path);
         if (file.exists() && file.isFile()) {
-            fis = new FileInputStream(file);
-            do {
-                numRead = fis.read(buffer);
-                if (numRead > 0) {
-                    digest.update(buffer, 0, numRead);
-                }
-            } while (numRead != -1);
-
-            fis.close();
+            try (InputStream fis = new FileInputStream(file)) {
+                do {
+                    numRead = fis.read(buffer);
+                    if (numRead > 0) {
+                        digest.update(buffer, 0, numRead);
+                    }
+                } while (numRead != -1);
+            }
             hash = digest.digest();
         }
         return hash;
