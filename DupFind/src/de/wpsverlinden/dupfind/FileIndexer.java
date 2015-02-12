@@ -123,7 +123,7 @@ public final class FileIndexer {
         if (file.exists() && file.isFile()) {
             try (XMLDecoder xdec = new XMLDecoder(new GZIPInputStream(new FileInputStream(file)))) {
                 index.clear();
-                index.putAll((HashMap<String, FileEntry>) xdec.readObject());
+                index.putAll((Map<String, FileEntry>) xdec.readObject());
                 System.out.println("done. " + index.size() + " files in index.");
             } catch (Exception e) {
                 System.err.println(e);
