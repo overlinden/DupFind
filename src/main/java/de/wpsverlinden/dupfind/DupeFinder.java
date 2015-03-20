@@ -22,25 +22,30 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Required;
 
 public class DupeFinder {
 
-    private final Map<String, FileEntry> index;
+    private Map<String, FileEntry> fileIndex;
+    private OutputPrinter outputPrinter;
 
-    public DupeFinder(Map<String, FileEntry> index) {
-        this.index = index;
+    @Required
+    public void setFileIndex(Map<String, FileEntry> fileIndex) {
+        this.fileIndex = fileIndex;
+    }
+    
+    @Required
+    public void setOutputPrinter(OutputPrinter outputPrinter) {
+        this.outputPrinter = outputPrinter;
     }
 
     public Collection<FileEntry> getDupesOf(String path) {
-        if (index == null) {
-            throw new NoIndexException();
-        }
-        FileEntry info = (FileEntry) index.get(path);
+        FileEntry info = (FileEntry) fileIndex.get(path);
         if (info == null) {
-            System.out.println("Could not find \"" + path + "\" in index");
+            outputPrinter.println("Could not find \"" + path + "\" in index");
             return Collections.EMPTY_LIST;
         }
-        Collection<FileEntry> dupes = index.values().parallelStream()
+        Collection<FileEntry> dupes = fileIndex.values().parallelStream()
                 .filter((e) -> !(e.getPath().equals(info.getPath())))
                 .filter((e) -> (e.getSize() == info.getSize()))
                 .filter((e) -> (e.getHash().equals(info.getHash())))
@@ -48,61 +53,18 @@ public class DupeFinder {
         return dupes;
     }
 
-    public void showDupesOf(String path) {
-        if (index == null) {
-            throw new NoIndexException();
-        }
-        FileEntry info = (FileEntry) index.get(path);
-        if (info == null) {
-            System.out.println("Index doesn't contain " + path);
-            return;
-        }
-        
-        Collection<FileEntry> dupes = getDupesOf(info.getPath());
-
-        if (dupes.size() > 0) {
-            System.out.println("-----\n" + info);
-            dupes.stream().forEach(System.out::println);
-            System.out.println("-----\n");
-        } else {
-            System.out.println("No dupes found.");
-        }
-    }
-
-    public void showDupes() {
-        Collection<List<FileEntry>> dupeEntries = getDupeEntries();
-        dupeEntries.stream()
-                .filter((e) -> e.size() >= 2)
-                .forEach((lst) -> {
-                    System.out.println("-----");
-                    while (!lst.isEmpty()) {
-                        System.out.println(lst.get(0));
-                        lst.remove(0);
-                    }
-                    System.out.println("-----\n");
-                });
-    }
-
     public Collection<List<FileEntry>> getDupeEntries() {
-        if (index == null) {
-            throw new NoIndexException();
-        }
-
-        Map<String, List<FileEntry>> dupeMap = index.values().parallelStream()
+        Map<String, List<FileEntry>> dupeMap = fileIndex.values().parallelStream()
                 .collect(Collectors.groupingBy((e) -> e.getSize() + "-" + e.getHash()));
         return dupeMap.values();
     }
 
-    public void showNumOfDupes() {
-        if (index == null) {
-            throw new NoIndexException();
-        }
-
-        int numOfFiles = index.values().size();
-        long numOfDistinctFiles = index.values().parallelStream()
+    public int getNumOfDupes() {
+        int numOfFiles = fileIndex.values().size();
+        int numOfDistinctFiles = (int) fileIndex.values().parallelStream()
                 .map((e) -> e.getSize() + "-" + e.getHash())
                 .distinct()
                 .count();
-        System.out.println("Found " + (numOfFiles - numOfDistinctFiles) + " dupes in index.");
+        return numOfFiles - numOfDistinctFiles;
     }
 }

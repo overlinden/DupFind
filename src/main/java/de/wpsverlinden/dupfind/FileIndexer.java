@@ -25,54 +25,62 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import org.springframework.beans.factory.annotation.Required;
 
 public final class FileIndexer {
 
-    private final Map<String, FileEntry> index = new HashMap<>();
-    private final File dir;
+    private final Map<String, FileEntry> fileIndex;
+    private final File userDir;
     private final String canonicalDir;
+    private OutputPrinter outputPrinter;
 
-    public FileIndexer() throws IOException {
-        this.dir = new File(".");
-        canonicalDir = this.dir.getCanonicalPath();
+    public FileIndexer(Map<String, FileEntry> fileIndex, String userDir) throws IOException {
+        this.fileIndex = fileIndex;
+        this.userDir = new File(userDir);
+        canonicalDir = this.userDir.getCanonicalPath();
     }
+
+    @Required
+    public void setOutputPrinter(OutputPrinter outputPrinter) {
+        this.outputPrinter = outputPrinter;
+    }
+    
 
     public void buildIndex() {
         pruneDeletedFiles();
-        addUpdatedFiles(dir);
-        index.remove("/DupFind.index.gz");
-        System.out.println("Indexing files done. " + index.size() + " file(s) in index.");
+        addUpdatedFiles(userDir);
+        fileIndex.remove("/DupFind.index.gz");
+        outputPrinter.println("Indexing files done. " + fileIndex.size() + " file(s) in index.");
     }
 
     public void pruneDeletedFiles() {
-        int oldSize = index.size();
-        System.out.print("Removing deleted files ... ");
+        int oldSize = fileIndex.size();
+        outputPrinter.print("Removing deleted files ... ");
         removeDeletedFiles();
-        System.out.println("done. Removed " + (oldSize - index.size()) + " file(s) from index");
+        outputPrinter.println("done. Removed " + (oldSize - fileIndex.size()) + " file(s) from index");
     }
 
     public void addUpdatedFiles(File dir) {
-        int oldSize = index.size();
-        System.out.print("Adding updated files ... ");
+        int oldSize = fileIndex.size();
+        outputPrinter.print("Adding updated files ... ");
         recAddFilesInDir(dir);
-        System.out.println("done. Updated " + (index.size() - oldSize) + " file(s) in index");
+        outputPrinter.println("done. Updated " + (fileIndex.size() - oldSize) + " file(s) in index");
     }
 
     private void removeDeletedFiles() {
-        List<String> removeList = index.keySet().parallelStream()
+        List<String> removeList = fileIndex.keySet().parallelStream()
                 .filter((e) -> {
                     File f = new File(canonicalDir + e);
                     return !f.exists() || !f.isFile();
                 })
                 .collect(Collectors.toList());
 
-        index.keySet().removeAll(removeList);
+        fileIndex.keySet().removeAll(removeList);
     }
 
     private void recAddFilesInDir(File dir) {
@@ -82,11 +90,11 @@ public final class FileIndexer {
                     .filter(Files::isRegularFile)
                     .map((e) -> e.toFile())
                     .filter((e) -> {
-                        FileEntry fi = index.get(getPath(e));
+                        FileEntry fi = fileIndex.get(getPath(e));
                         return fi == null || fi.getLastModified() < e.lastModified();
                     })
                     .collect(Collectors.toMap((e) -> getPath(e), (e) -> new FileEntry(getPath(e), e.length(), e.lastModified(), "")));
-            index.putAll(collect);
+            fileIndex.putAll(collect);
         } catch (IOException ex) {
             System.err.println(ex);
         }
@@ -96,21 +104,25 @@ public final class FileIndexer {
         return e.getPath().substring(canonicalDir.length()).replace("\\", "/");
     }
 
-    public Map<String, FileEntry> getIndex() {
-        return index;
+    public Map<String, FileEntry> getFileIndex() {
+        return fileIndex;
     }
 
     public String pwd() {
         return (canonicalDir) + " > ";
     }
+    
+    public FileEntry getEntry(String path) {
+        return fileIndex.get(path);
+    }
 
     public void saveIndex() {
-        File outFile = new File("DupFind.index.gz");
-        System.out.print("Saving index ... ");
+        File outFile = new File(userDir + "/DupFind.index.gz");
+        outputPrinter.print("Saving index ... ");
         try (XMLEncoder xenc = new XMLEncoder(new GZIPOutputStream(new FileOutputStream(outFile)))) {
-            xenc.writeObject(index);
+            xenc.writeObject(fileIndex);
             xenc.flush();
-            System.out.println("done.  " + index.size() + " files in index.");
+            outputPrinter.println("done.  " + fileIndex.size() + " files in index.");
         } catch (IOException e) {
             System.err.println(e);
         }
@@ -118,18 +130,19 @@ public final class FileIndexer {
 
     @SuppressWarnings("unchecked")
     public void loadIndex() {
-        File file = new File("DupFind.index.gz");
-        System.out.print("Loading index ... ");
+        File file = new File(userDir + "/DupFind.index.gz");
+        outputPrinter.print("Loading index ... ");
         if (file.exists() && file.isFile()) {
             try (XMLDecoder xdec = new XMLDecoder(new GZIPInputStream(new FileInputStream(file)))) {
-                index.clear();
-                index.putAll((Map<String, FileEntry>) xdec.readObject());
-                System.out.println("done. " + index.size() + " files in index.");
+                fileIndex.clear();
+                fileIndex.putAll((Map<String, FileEntry>) xdec.readObject());
+                outputPrinter.println("done. " + fileIndex.size() + " files in index.");
             } catch (Exception e) {
                 System.err.println(e);
             }
         } else {
-            System.out.println("failed. Creating new index.");
+            outputPrinter.println("failed. Creating new index.");
+            fileIndex.clear();
         }
     }
 }

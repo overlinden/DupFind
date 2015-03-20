@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+        "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+
+<beans>
+    <bean class="org.springframework.beans.factory.annotation.RequiredAnnotationBeanPostProcessor"/>
+
+    <bean id="fileIndex" class="java.util.HashMap"></bean>
+    <bean id="outputPrinter" class="de.wpsverlinden.dupfind.OutputPrinter">
+        <property name="outputStream">
+            <bean id="java.lang.System.out" class="org.springframework.beans.factory.config.FieldRetrievingFactoryBean" />
+        </property>
+    </bean>
+    <bean id="fileIndexer" class="de.wpsverlinden.dupfind.FileIndexer">
+        <constructor-arg ref="fileIndex"></constructor-arg>
+        <constructor-arg value="#{systemProperties['user.dir']}"></constructor-arg>
+        <property name="outputPrinter" ref="outputPrinter"></property>
+    </bean>
+    <bean id="hashCalculator" class="de.wpsverlinden.dupfind.HashCalculator">
+        <property name="entries" value="#{fileIndex.values()}"></property>
+        <property name="outputPrinter" ref="outputPrinter"></property>
+        <property name="userDir" value="#{systemProperties['user.dir']}"></property>
+    </bean>
+    <bean id="dupeFinder" class="de.wpsverlinden.dupfind.DupeFinder">
+        <property name="fileIndex" ref="fileIndex"></property>
+        <property name="outputPrinter" ref="outputPrinter"></property>
+    </bean>
+    <bean id="dupeRemover" class="de.wpsverlinden.dupfind.DupeRemover">
+        <property name="dupeFinder" ref="dupeFinder"></property>
+        <property name="fileIndex" ref="fileIndex"></property>
+        <property name="outputPrinter" ref="outputPrinter"></property>
+        <property name="userDir" value="#{systemProperties['user.dir']}"></property>
+    </bean>
+    <bean id="dupFind" class="de.wpsverlinden.dupfind.DupFind">
+        <property name="fileIndexer" ref="fileIndexer"></property>
+        <property name="hashCalculator" ref="hashCalculator"></property>
+        <property name="dupeFinder" ref="dupeFinder"></property>
+        <property name="dupeRemover" ref="dupeRemover"></property>
+        <property name="outputPrinter" ref="outputPrinter"></property>
+    </bean>
+
+</beans>

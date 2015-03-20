@@ -18,6 +18,7 @@
 package de.wpsverlinden.dupfind;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class FileEntry implements Serializable {
 
@@ -33,14 +34,6 @@ public class FileEntry implements Serializable {
         this.size = size;
         this.lastModified = lastModified;
         this.hash = hash;
-    }
-
-    public long getLastModified() {
-        return lastModified;
-    }
-
-    public void setLastModified(long lastModified) {
-        this.lastModified = lastModified;
     }
 
     public String getPath() {
@@ -66,9 +59,52 @@ public class FileEntry implements Serializable {
     public void setSize(long size) {
         this.size = size;
     }
+
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    public void setLastModified(long lastModified) {
+        this.lastModified = lastModified;
+    }
+
     
     @Override
     public String toString() {
-        return "File[" + getPath() + "; size=" + getSize() + " byte; hash=" + getHash() + "]";
+        return "FileEntry{" + "path=" + path + ", hash=" + hash + ", size=" + size + ", lastModified=" + lastModified + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 37 * hash + Objects.hashCode(this.path);
+        hash = 37 * hash + Objects.hashCode(this.hash);
+        hash = 37 * hash + (int) (this.size ^ (this.size >>> 32));
+        hash = 37 * hash + (int) (this.lastModified ^ (this.lastModified >>> 32));
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final FileEntry other = (FileEntry) obj;
+        if (!Objects.equals(this.path, other.path)) {
+            return false;
+        }
+        if (!Objects.equals(this.hash, other.hash)) {
+            return false;
+        }
+        if (this.size != other.size) {
+            return false;
+        }
+        if (this.lastModified != other.lastModified) {
+            return false;
+        }
+        return true;
     }
 }

@@ -21,55 +21,62 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Required;
 
 public class DupeRemover {
 
-    private final Map<String, FileEntry> index;
-    private final DupeFinder df;
+    private Map<String, FileEntry> fileIndex;
+    private DupeFinder dupeFinder;
+    private OutputPrinter outputPrinter;
+    private String userDir;
 
-    public DupeRemover(DupeFinder df, Map<String, FileEntry> index) {
-        this.index = index;
-        this.df = df;
+    @Required
+    public void setDupeFinder(DupeFinder dupeFinder) {
+        this.dupeFinder = dupeFinder;
+    }
+    
+    @Required
+    public void setFileIndex(Map<String, FileEntry> fileIndex) {
+        this.fileIndex = fileIndex;
     }
 
-    public void deleteDupesOf(String path) {
-        if (index == null) {
-            throw new NoIndexException();
-        }
-        FileEntry info = (FileEntry) index.get(path);
-        if (info == null) {
-            System.out.println("Index doesn't contain " + path);
-            return;
-        }
-        Collection<FileEntry> dupes = df.getDupesOf(info.getPath());
+    @Required
+    public void setOutputPrinter(OutputPrinter outputPrinter) {
+        this.outputPrinter = outputPrinter;
+    }
 
+    @Required
+    public void setUserDir(String userDir) {
+        this.userDir = userDir;
+    }
+
+    public void deleteDupes(Collection<FileEntry> dupes, FileEntry info) {
         if (dupes.size() > 0) {
-            System.out.println("Deleting dupes of " + info);
-
+            outputPrinter.println("Deleting dupes of " + info);
             dupes.stream()
                     .map((e) -> e.getPath())
                     .forEach((e) -> {
-                        File del = new File(System.getProperty("user.dir") + e);
-                        index.remove(e);
+                        File del = new File(userDir + e);
+                        fileIndex.remove(e);
                         del.delete();
                     });
-            System.out.println(" done.");
+            outputPrinter.println(" done.");
         }
     }
 
-    public void deleteDupes() {
-        System.out.print("Delete dupes ...");
-        Collection<List<FileEntry>> dupeEntries = df.getDupeEntries();
+    public void deleteAllDupes() {
+        outputPrinter.print("Delete dupes ...");
+        Collection<List<FileEntry>> dupeEntries = dupeFinder.getDupeEntries();
         dupeEntries.stream()
                 .forEach((lst) -> {
                     while (lst.size() > 1) {
                         String delPath = lst.get(lst.size() - 1).getPath();
-                        File del = new File(System.getProperty("user.dir") + delPath);
+                        File del = new File(userDir + delPath);
                         del.delete();
-                        index.remove(delPath);
+                        fileIndex.remove(delPath);
                         lst.remove(lst.size() - 1);
                     }
                 });
-        System.out.println(" done.");
+        outputPrinter.println(" done.");
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN"
+        "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+
+<beans>
+    <bean class="org.springframework.beans.factory.annotation.RequiredAnnotationBeanPostProcessor"/>
+
+    <bean id="outputPrinter" class="de.wpsverlinden.dupfind.OutputPrinter">
+        <property name="outputStream"><null/></property>
+    </bean>
+
+    <bean id="fileIndexer" class="de.wpsverlinden.dupfind.FileIndexer">
+<!--        <constructor-arg value="#{systemProperties['user.dir']}"></constructor-arg>-->
+        <property name="outputPrinter" ref="outputPrinter"></property>
+    </bean>
+    
+</beans>

@@ -19,150 +19,146 @@ package de.wpsverlinden.dupfind;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collection;
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.springframework.beans.factory.annotation.Required;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class DupFind {
 
-    private final FileIndexer fi;
-    private final HashCalculator hc;
-    private final DupeFinder df;
-    private final DupeRemover dr;
+    private FileIndexer fileIndexer;
+    private HashCalculator hashCalculator;
+    private DupeFinder dupeFinder;
+    private DupeRemover dupeRemover;
+    private OutputPrinter outputPrinter;
 
     public static void main(String[] args) {
+
+        ApplicationContext ctx = new ClassPathXmlApplicationContext("AppConfig.xml");
+        DupFind app = (DupFind) ctx.getBean("dupFind");
         try {
-            DupFind app = new DupFind();
             app.run();
         } catch (IOException ex) {
             Logger.getLogger(DupFind.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    private DupFind() throws IOException {
+    @Required
+    public void setFileIndexer(FileIndexer fileIndexer) {
+        this.fileIndexer = fileIndexer;
+    }
 
-        System.out.println("DupFind 2.1 - written by Oliver Verlinden (http://wps-verlinden.de)");
-        System.out.println("Type \"help\" to display usage information");
-        fi = new FileIndexer();
-        fi.loadIndex();
-        hc = new HashCalculator(fi.getIndex().values());
-        df = new DupeFinder(fi.getIndex());
-        dr = new DupeRemover(df, fi.getIndex());
+    @Required
+    public void setHashCalculator(HashCalculator hashCalculator) {
+        this.hashCalculator = hashCalculator;
+    }
+
+    @Required
+    public void setDupeFinder(DupeFinder dupeFinder) {
+        this.dupeFinder = dupeFinder;
+    }
+
+    @Required
+    public void setDupeRemover(DupeRemover dupeRemover) {
+        this.dupeRemover = dupeRemover;
+    }
+
+    @Required
+    public void setOutputPrinter(OutputPrinter outputPrinter) {
+        this.outputPrinter = outputPrinter;
     }
 
     private void run() throws IOException {
+        outputPrinter.printSplash();
+        fileIndexer.loadIndex();
+
         Scanner sc = new Scanner(new InputStreamReader(System.in));
         while (true) {
-            try {
-                System.out.print(fi.pwd());
-                String line = sc.nextLine();
-                if ("exit".equals(line)) {
-                    break;
-                }
-                String[] words = line.split(" ");
-                
-                if ("help".equals(words[0])) {
-                    printHelp();
-                } else if ("build_index".equals(words[0]) && words.length == 1) {
-                    buildIndex();
-                    
-                } else if ("calc_hashes".equals(words[0]) && words.length >= 1 && words.length <= 2) {
-                    calcHashes();
-                    
-                } else if ("show_dupes_of".equals(words[0]) && words.length >= 2) {
-                    showDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
-                    
-                } else if ("show_dupes".equals(words[0]) && words.length == 1) {
-                    showDupes();
-                    
-                } else if ("num_of_dupes".equals(words[0]) && words.length == 1) {
-                    numOfDupes();
-                    
-                } else if ("delete_dupes_of".equals(words[0]) && words.length >= 2) {
-                    deleteDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
-                    
-                } else if ("delete_dupes".equals(words[0]) && words.length == 1) {
-                    deleteDupes();
-                    
-                } else {
-                    System.out.println("Invaid command: " + line);
-                    System.out.println("Type \"help\" to display usage information");
-                }
-            } catch (NoIndexException e) {
-                System.out.println(e.getMessage());
+            System.out.print(fileIndexer.pwd());
+            String line = sc.nextLine();
+            if ("exit".equals(line)) {
+                break;
+            }
+            String[] words = line.split(" ");
+
+            if ("help".equals(words[0])) {
+                outputPrinter.printHelp();
+            } else if ("build_index".equals(words[0]) && words.length == 1) {
+                buildIndex();
+
+            } else if ("calc_hashes".equals(words[0]) && words.length >= 1 && words.length <= 2) {
+                calcHashes();
+
+            } else if ("show_dupes_of".equals(words[0]) && words.length >= 2) {
+                showDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
+
+            } else if ("show_dupes".equals(words[0]) && words.length == 1) {
+                showDupes();
+
+            } else if ("num_of_dupes".equals(words[0]) && words.length == 1) {
+                numOfDupes();
+
+            } else if ("delete_dupes_of".equals(words[0]) && words.length >= 2) {
+                deleteDupesOf(line.substring(words[0].length() + 1).replace("\"", ""));
+
+            } else if ("delete_dupes".equals(words[0]) && words.length == 1) {
+                deleteDupes();
+
+            } else {
+                outputPrinter.printInvalidCommand(line);
             }
         }
     }
 
-    private static void printHelp() {
-        System.out.println("DupFind 2.1 - written by Oliver Verlinden (http://wps-verlinden.de)\n");
-        System.out.println("General commands:");
-        System.out.println(" -> help                      : Displays this help message");
-        System.out.println(" -> exit                      : Close this application");
-        System.out.println("Indexing:");
-        System.out.println(" -> build_index               : Build a new index or update an existing index in the current directory");
-        System.out.println(" -> calc_hashes               : Optionally extend the previously generated index with hash information of each file");
-        System.out.println("                                The calculation time depends on the CPU/IO performance and the number/sizes");
-        System.out.println("                                of the indexed files.");
-        System.out.println("Searching:");
-        System.out.println(" -> num_of_dupes              : Displays the total number of dupes");
-        System.out.println(" -> show_dupes_of \"path\"      : Displays dupes of the file specified by \"path\"");
-        System.out.println(" -> show_dupes                : Displays a list of all duplicate files within the indexed directory");
-        System.out.println("Cleanup:");
-        System.out.println(" -> delete_dupes_of \"path\"    : Deletes all duplicates of the file specified by \"path\"");
-        System.out.println(" -> delete_dupes              : Deletes all duplicate files within the indexed directory");
-        System.out.println();
-        System.out.println();
-        System.out.println("Additional information:");
-        System.out.println("When you only index a directory without calculating the hashes, the duplicate recognition only");
-        System.out.println("depends on the file size. It's hightly recommended to calculate the hashes to decrease the risk");
-        System.out.println("of false positives (files are shown as dupes, but they aren't). When the index includes the hashes");
-        System.out.println("duplicates are recognized by size and hash. The risk of false positives is very low.");
-        System.out.println();
-        System.out.println("The indexing and hash calculating mechanism only processes newly created or changed files.");
-        System.out.println("So the first initial run of \"build_index\" and \"calc_hashes\" will take much time. But the next runs");
-        System.out.println("will be executed faster.");
-        System.out.println();
-        System.out.println();
-        System.out.println("Usage example (Find all dupes in \"D:\\Images\\\" and remove them):");
-        System.out.println("1) Navigate to \"D:\\Images\\\" directory");
-        System.out.println("2) Start dupfind via \"java -jar DupFind.jar\"");
-        System.out.println("3) build index");
-        System.out.println("4) calc_hashes");
-        System.out.println("5) num_of_dupes");
-        System.out.println("6) show_dupes");
-        System.out.println("7) delete_dupes");
-    }
-
     private void buildIndex() {
-        fi.buildIndex();
-        fi.saveIndex();
+        fileIndexer.buildIndex();
+        fileIndexer.saveIndex();
     }
 
     private void calcHashes() throws IOException {
-        hc.calculateHashes();
-        fi.saveIndex();
+        hashCalculator.calculateHashes();
+        fileIndexer.saveIndex();
     }
 
     private void showDupesOf(String path) {
-        df.showDupesOf(path);
+        FileEntry info = (FileEntry) fileIndexer.getEntry(path);
+        if (info != null) {
+            Collection<FileEntry> dupes = dupeFinder.getDupesOf(info.getPath());
+            outputPrinter.printDupesOf(info, dupes);
+        } else {
+            outputPrinter.println("Index doesn't contain " + path);
+        }
+
     }
 
     private void showDupes() {
-        df.showDupes();
+        Collection<List<FileEntry>> dupeEntries = dupeFinder.getDupeEntries();
+        outputPrinter.printDupesOf(dupeEntries);
     }
 
     private void numOfDupes() {
-        df.showNumOfDupes();
+        outputPrinter.println("Found " + dupeFinder.getNumOfDupes() + " dupes in index.");
+
     }
 
     private void deleteDupesOf(String path) {
-        dr.deleteDupesOf(path);
-        fi.saveIndex();
+        FileEntry info = (FileEntry) fileIndexer.getEntry(path);
+        if (info == null) {
+            outputPrinter.println("Index doesn't contain " + path);
+            return;
+        }
+        Collection<FileEntry> dupes = dupeFinder.getDupesOf(info.getPath());
+
+        dupeRemover.deleteDupes(dupes, info);
+        fileIndexer.saveIndex();
     }
 
     private void deleteDupes() {
-        dr.deleteDupes();
-        fi.saveIndex();
+        dupeRemover.deleteAllDupes();
+        fileIndexer.saveIndex();
     }
 }

@@ -22,66 +22,72 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Collection;
+import org.springframework.beans.factory.annotation.Required;
 
 public class HashCalculator {
 
-    private final Collection<FileEntry> entries;
+    private Collection<FileEntry> entries;
+    private String userDir;
+    private OutputPrinter outputPrinter;
 
-    public HashCalculator(Collection<FileEntry> entries) {
+    @Required
+    public void setEntries(Collection<FileEntry> entries) {
         this.entries = entries;
     }
 
+    @Required
+    public void setUserDir(String userDir) {
+        this.userDir = userDir;
+    }
+
+    @Required
+    public void setOutputPrinter(OutputPrinter outputPrinter) {
+        this.outputPrinter = outputPrinter;
+    }
+
     public void calculateHashes() {
-        if (entries == null) {
-            throw new NoIndexException();
-        }
-        System.out.print("Calculating hashes ...");
+        outputPrinter.print("Calculating hashes ...");
         entries.parallelStream()
                 .filter((e) -> {
-                    File file = new File(System.getProperty("user.dir") + e.getPath());
-                    return (e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
+                    File file = new File(userDir + e.getPath());
+                    return (file.exists() && file.isFile() && e.getHash().isEmpty() || e.getLastModified() < file.lastModified());
                 })
                 .forEach((e) -> {
                     calc(e);
+                    outputPrinter.print(".");
                 });
-        System.out.println(" done.");
+        outputPrinter.println(" done.");
     }
 
-    public void calc(FileEntry current) {
+    private void calc(FileEntry current) {
         try {
-            current.setHash(calcHash(System.getProperty("user.dir") + current.getPath()));
-            System.out.print(".");
+            current.setHash(calcHash(new File(userDir + current.getPath())));
         } catch (Exception e) {
-            System.out.println("Error calculating hash for " + current.getPath() + ": " + e.getMessage());
+            outputPrinter.println("Error calculating hash for " + current.getPath() + ": " + e.getMessage());
         }
     }
 
-    private byte[] calcChecksum(String path) throws Exception {
+    private byte[] calcChecksum(File file) throws Exception {
         byte[] buffer = new byte[8192];
         MessageDigest digest = MessageDigest.getInstance("MD5");
         int numRead;
-        byte[] hash = null;
-        File file = new File(path);
-        if (file.exists() && file.isFile()) {
-            try (InputStream fis = new FileInputStream(file)) {
-                do {
-                    numRead = fis.read(buffer);
-                    if (numRead > 0) {
-                        digest.update(buffer, 0, numRead);
-                    }
-                } while (numRead != -1);
-            }
-            hash = digest.digest();
+        try (InputStream fis = new FileInputStream(file)) {
+            do {
+                numRead = fis.read(buffer);
+                if (numRead > 0) {
+                    digest.update(buffer, 0, numRead);
+                }
+            } while (numRead != -1);
         }
-        return hash;
+        return digest.digest();
     }
 
-    public String calcHash(String path) throws Exception {
-        byte[] b = calcChecksum(path);
+    private String calcHash(File file) throws Exception {
+        byte[] bytes = calcChecksum(file);
         String result = "";
 
-        for (int i = 0; i < b.length; i++) {
-            result += Integer.toString((b[i] & 0xff) + 0x100, 16).substring(1);
+        for (byte b : bytes) {
+            result += Integer.toString((b & 0xff) + 0x100, 16).substring(1);
         }
         return result;
     }
