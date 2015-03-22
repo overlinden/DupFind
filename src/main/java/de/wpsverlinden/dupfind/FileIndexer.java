@@ -50,7 +50,6 @@ public final class FileIndexer {
         this.outputPrinter = outputPrinter;
     }
     
-
     public void buildIndex() {
         pruneDeletedFiles();
         addUpdatedFiles(userDir);
@@ -58,14 +57,14 @@ public final class FileIndexer {
         outputPrinter.println("Indexing files done. " + fileIndex.size() + " file(s) in index.");
     }
 
-    public void pruneDeletedFiles() {
+    private void pruneDeletedFiles() {
         int oldSize = fileIndex.size();
         outputPrinter.print("Removing deleted files ... ");
         removeDeletedFiles();
         outputPrinter.println("done. Removed " + (oldSize - fileIndex.size()) + " file(s) from index");
     }
 
-    public void addUpdatedFiles(File dir) {
+    private void addUpdatedFiles(File dir) {
         int oldSize = fileIndex.size();
         outputPrinter.print("Adding updated files ... ");
         recAddFilesInDir(dir);
